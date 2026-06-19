@@ -7,10 +7,6 @@ import { statsRouter, myRouter } from './miscRoutes.js'
 
 const router = Router()
 
-router.get('/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'lead-list-api' })
-})
-
 router.use('/auth', authRoutes)
 router.use('/stats', statsRouter)
 router.use('/users', userRoutes)
