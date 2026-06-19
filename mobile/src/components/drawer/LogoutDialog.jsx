@@ -8,7 +8,7 @@ export function LogoutDialog({ visible, colors, onDismiss, onConfirm }) {
         onDismiss={onDismiss}
         style={[styles.dialog, { backgroundColor: colors.surface }]}
       >
-        <Dialog.Icon icon="logout" color="#EF4444" />
+        <Dialog.Icon icon="logout" color={colors.dangerText} />
         <Dialog.Title style={styles.title}>Sign Out</Dialog.Title>
         <Dialog.Content>
           <Text variant="bodyMedium" style={[styles.message, { color: colors.textSecondary }]}>
@@ -16,10 +16,10 @@ export function LogoutDialog({ visible, colors, onDismiss, onConfirm }) {
           </Text>
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={onDismiss} textColor="#6B7280">
+          <Button onPress={onDismiss} textColor={colors.textSecondary}>
             Cancel
           </Button>
-          <Button onPress={onConfirm} textColor="#EF4444">
+          <Button onPress={onConfirm} textColor={colors.dangerText}>
             Sign Out
           </Button>
         </Dialog.Actions>

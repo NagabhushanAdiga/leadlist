@@ -3,9 +3,10 @@ import * as DocumentPicker from 'expo-document-picker'
 import { useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { Button, HelperText, Text } from 'react-native-paper'
-import { EXPECTED_EXCEL_COLUMNS } from '../../src/utils/excelImport'
+import { useAppTheme } from '../../src/context/ThemeContext'
 import { importLeadsFromExcel } from '../../src/services/leadStorage'
 import { fontSize } from '../../src/theme/typography'
+import { EXPECTED_EXCEL_COLUMNS } from '../../src/utils/excelImport'
 
 const EXCEL_TYPES = [
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -20,6 +21,7 @@ function formatFileSize(bytes) {
 }
 
 export default function UploadScreen() {
+  const { colors } = useAppTheme()
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -81,29 +83,41 @@ export default function UploadScreen() {
   }
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
-      <View style={styles.infoCard}>
-        <MaterialCommunityIcons name="file-excel-outline" size={40} color="#10B981" />
-        <Text style={styles.infoTitle}>Upload Excel File</Text>
-        <Text style={styles.infoText}>
+    <ScrollView
+      style={[styles.root, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.content}
+    >
+      <View style={[styles.infoCard, { backgroundColor: colors.successSoft }]}>
+        <MaterialCommunityIcons name="file-excel-outline" size={40} color={colors.success} />
+        <Text style={[styles.infoTitle, { color: colors.text }]}>Upload Excel File</Text>
+        <Text style={[styles.infoText, { color: colors.textSecondary }]}>
           Import leads from an Excel spreadsheet. Supported formats: .xlsx, .xls
         </Text>
-        <Text style={styles.columnsText}>Expected columns: {EXPECTED_EXCEL_COLUMNS}</Text>
+        <Text style={[styles.columnsText, { color: colors.text }]}>
+          Expected columns: {EXPECTED_EXCEL_COLUMNS}
+        </Text>
       </View>
 
-      <View style={styles.uploadCard}>
-        <View style={styles.dropZone}>
-          <MaterialCommunityIcons name="cloud-upload-outline" size={48} color="#6C63FF" />
-          <Text style={styles.dropTitle}>
+      <View style={[styles.uploadCard, { backgroundColor: colors.card, shadowColor: colors.shadow }]}>
+        <View
+          style={[
+            styles.dropZone,
+            { borderColor: colors.borderStrong, backgroundColor: colors.dropZoneBg },
+          ]}
+        >
+          <MaterialCommunityIcons name="cloud-upload-outline" size={48} color={colors.primary} />
+          <Text style={[styles.dropTitle, { color: colors.text }]}>
             {file ? 'File selected' : 'Choose an Excel file'}
           </Text>
-          <Text style={styles.dropSubtitle}>
+          <Text style={[styles.dropSubtitle, { color: colors.textSecondary }]}>
             {file ? file.name : 'Uploading replaces only your lead list'}
           </Text>
 
           {file ? (
-            <View style={styles.fileMeta}>
-              <Text style={styles.fileMetaText}>Size: {formatFileSize(file.size)}</Text>
+            <View style={[styles.fileMeta, { backgroundColor: colors.primarySoft }]}>
+              <Text style={[styles.fileMetaText, { color: colors.primary }]}>
+                Size: {formatFileSize(file.size)}
+              </Text>
             </View>
           ) : null}
         </View>
@@ -112,7 +126,7 @@ export default function UploadScreen() {
           mode="outlined"
           icon="file-find-outline"
           onPress={pickFile}
-          style={styles.pickButton}
+          style={[styles.pickButton, { borderColor: colors.primary }]}
           contentStyle={styles.buttonContent}
         >
           {file ? 'Choose Another File' : 'Select Excel File'}
@@ -122,7 +136,7 @@ export default function UploadScreen() {
           <Button
             mode="text"
             onPress={clearFile}
-            textColor="#6B7280"
+            textColor={colors.textSecondary}
             style={styles.clearButton}
           >
             Remove file
@@ -136,7 +150,7 @@ export default function UploadScreen() {
         ) : null}
 
         {success ? (
-          <HelperText type="info" visible style={styles.successMessage}>
+          <HelperText type="info" visible style={[styles.successMessage, { color: colors.success }]}>
             {success}
           </HelperText>
         ) : null}
@@ -147,7 +161,7 @@ export default function UploadScreen() {
           onPress={handleUpload}
           loading={uploading}
           disabled={uploading || !file}
-          style={styles.uploadButton}
+          style={[styles.uploadButton, { backgroundColor: colors.primary }]}
           contentStyle={styles.buttonContent}
         >
           Import Leads
@@ -160,14 +174,12 @@ export default function UploadScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F8F9FE',
   },
   content: {
     padding: 20,
     paddingBottom: 32,
   },
   infoCard: {
-    backgroundColor: '#ECFDF5',
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
@@ -176,29 +188,24 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: fontSize.xl,
     fontWeight: '700',
-    color: '#1A1A2E',
     marginTop: 12,
     marginBottom: 6,
   },
   infoText: {
     fontSize: fontSize.md,
-    color: '#6B7280',
     textAlign: 'center',
     lineHeight: 22,
   },
   columnsText: {
     fontSize: fontSize.sm,
-    color: '#374151',
     textAlign: 'center',
     marginTop: 10,
     lineHeight: 20,
     fontWeight: '600',
   },
   uploadCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 20,
-    shadowColor: '#6C63FF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -209,21 +216,17 @@ const styles = StyleSheet.create({
     paddingVertical: 28,
     paddingHorizontal: 16,
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
     borderStyle: 'dashed',
     borderRadius: 14,
     marginBottom: 16,
-    backgroundColor: '#FAFBFF',
   },
   dropTitle: {
     fontSize: fontSize.lg,
     fontWeight: '700',
-    color: '#1A1A2E',
     marginTop: 12,
   },
   dropSubtitle: {
     fontSize: fontSize.sm,
-    color: '#6B7280',
     marginTop: 6,
     textAlign: 'center',
   },
@@ -231,17 +234,14 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#EEF0FF',
     borderRadius: 8,
   },
   fileMetaText: {
     fontSize: fontSize.sm,
-    color: '#6C63FF',
     fontWeight: '600',
   },
   pickButton: {
     borderRadius: 8,
-    borderColor: '#6C63FF',
   },
   clearButton: {
     marginTop: 4,
@@ -249,7 +249,6 @@ const styles = StyleSheet.create({
   uploadButton: {
     marginTop: 16,
     borderRadius: 8,
-    backgroundColor: '#6C63FF',
   },
   buttonContent: {
     paddingVertical: 6,
@@ -259,6 +258,5 @@ const styles = StyleSheet.create({
   },
   successMessage: {
     marginTop: 8,
-    color: '#10B981',
   },
 })

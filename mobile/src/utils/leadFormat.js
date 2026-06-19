@@ -1,11 +1,31 @@
-import { Linking } from 'react-native'
+import { Linking, Platform } from 'react-native'
 
 export function formatPhone(phone) {
-  if (phone.length === 10) {
-    return `${phone.slice(0, 5)} ${phone.slice(5)}`
+  if (!phone) {
+    return '—'
   }
 
-  return phone
+  const digits = String(phone).replace(/\D/g, '')
+
+  if (digits.length === 10) {
+    return `${digits.slice(0, 5)} ${digits.slice(5)}`
+  }
+
+  return String(phone).trim() || '—'
+}
+
+export function sanitizePhoneForDial(phone) {
+  if (!phone) {
+    return ''
+  }
+
+  const trimmed = String(phone).trim()
+
+  if (trimmed.startsWith('+')) {
+    return `+${trimmed.slice(1).replace(/\D/g, '')}`
+  }
+
+  return trimmed.replace(/\D/g, '')
 }
 
 export function formatFollowUpDate(dateString) {
@@ -17,10 +37,29 @@ export function formatFollowUpDate(dateString) {
 }
 
 export async function handleCall(phone) {
-  const url = `tel:${phone}`
-  const canOpen = await Linking.canOpenURL(url)
+  const sanitized = sanitizePhoneForDial(phone)
 
-  if (canOpen) {
-    await Linking.openURL(url)
+  if (!sanitized) {
+    return { ok: false, message: 'No phone number available for this lead.' }
+  }
+
+  const url = `tel:${sanitized}`
+
+  try {
+    if (Platform.OS === 'android') {
+      await Linking.openURL(url)
+      return { ok: true }
+    }
+
+    const canOpen = await Linking.canOpenURL(url)
+
+    if (canOpen) {
+      await Linking.openURL(url)
+      return { ok: true }
+    }
+
+    return { ok: false, message: 'Unable to open the phone dialer on this device.' }
+  } catch {
+    return { ok: false, message: 'Could not start the call. Please try again.' }
   }
 }

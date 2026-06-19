@@ -4,6 +4,9 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import { ConfirmProvider } from './context/ConfirmContext'
 import { AuditPage } from './pages/AuditPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { SuperAdminRoute } from './components/SuperAdminRoute'
+import { DoNotEnterPage } from './pages/DoNotEnterPage'
+import { FeedbackPage } from './pages/FeedbackPage'
 import { LeadsPage } from './pages/LeadsPage'
 import { LoginPage } from './pages/LoginPage'
 import { SettingsPage } from './pages/SettingsPage'
@@ -36,6 +39,8 @@ export default function App() {
           <Route path="upload" element={<UploadPage />} />
           <Route path="user-leads" element={<UserLeadsPage />} />
           <Route path="audit" element={<AuditPage />} />
+          <Route path="feedback" element={<FeedbackPage />} />
+          <Route path="do-not-enter" element={<SuperAdminRoute><DoNotEnterPage /></SuperAdminRoute>} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />

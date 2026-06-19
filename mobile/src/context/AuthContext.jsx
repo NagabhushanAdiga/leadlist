@@ -1,11 +1,14 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import {
   changeMyPassword,
+  fetchMyProfile,
   updateMyProfile,
   userLogin as apiUserLogin,
+  userLogout as apiUserLogout,
   userRegister as apiUserRegister,
 } from '../services/authService'
-import { setAuthToken } from '../services/httpClient'
+import { getDeviceId } from '../services/deviceId'
+import { setAuthToken, setUnauthorizedHandler } from '../services/httpClient'
 import {
   clearUserSession,
   getUserSession,
@@ -13,6 +16,9 @@ import {
 } from '../services/userStorage'
 
 const AuthContext = createContext(null)
+
+const SESSION_EXPIRED_MESSAGE =
+  'Your session expired. This account is signed in on another device. Please sign in again.'
 
 function buildUser({ id, name, email, mobile, role, company, enabled }) {
   return {
@@ -26,10 +32,12 @@ function buildUser({ id, name, email, mobile, role, company, enabled }) {
   }
 }
 
-async function fetchUserFromServer(email, password) {
-  const data = await apiUserLogin(email, password)
-  setAuthToken(data.token)
-  return { user: buildUser(data.user), token: data.token }
+function isSessionExpiredError(message) {
+  return (
+    message === SESSION_EXPIRED_MESSAGE ||
+    message === 'Unauthorized' ||
+    message?.includes('signed in on another device')
+  )
 }
 
 export function AuthProvider({ children }) {
@@ -37,34 +45,47 @@ export function AuthProvider({ children }) {
   const [password, setPassword] = useState('')
   const [token, setToken] = useState(null)
   const [hydrated, setHydrated] = useState(false)
+  const [sessionMessage, setSessionMessage] = useState('')
+
+  const forceLogout = useCallback(async (message) => {
+    setAuthToken(null)
+    setToken(null)
+    setUser(null)
+    setPassword('')
+    await clearUserSession()
+
+    if (message) {
+      setSessionMessage(message)
+    }
+  }, [])
+
+  useEffect(() => {
+    setUnauthorizedHandler((message) => {
+      forceLogout(message || SESSION_EXPIRED_MESSAGE)
+    })
+
+    return () => setUnauthorizedHandler(null)
+  }, [forceLogout])
 
   useEffect(() => {
     async function restoreSession() {
       const session = await getUserSession()
 
-      if (session?.user?.email && session?.password) {
-        if (session.token) {
-          setAuthToken(session.token)
-          setToken(session.token)
-        }
+      if (session?.token && session?.user?.email) {
+        setAuthToken(session.token)
+        setToken(session.token)
+        setPassword(session.password || '')
 
         try {
-          const nextSession = await fetchUserFromServer(session.user.email, session.password)
-          setUser(nextSession.user)
-          setPassword(session.password)
-          setToken(nextSession.token)
-          await saveUserSession(nextSession.user, session.password, nextSession.token)
+          const profile = await fetchMyProfile()
+          const nextUser = buildUser(profile)
+          setUser(nextUser)
+          await saveUserSession(nextUser, session.password || '', session.token)
         } catch (err) {
-          if (err.message === 'Invalid email or password.') {
-            setAuthToken(null)
-            await clearUserSession()
+          if (isSessionExpiredError(err.message)) {
+            await forceLogout(SESSION_EXPIRED_MESSAGE)
           } else {
             setUser(buildUser(session.user))
-            setPassword(session.password)
-            if (session.token) {
-              setAuthToken(session.token)
-              setToken(session.token)
-            }
           }
         }
       }
@@ -73,59 +94,66 @@ export function AuthProvider({ children }) {
     }
 
     restoreSession()
-  }, [])
+  }, [forceLogout])
 
   const refreshAccountStatus = useCallback(async () => {
-    if (!user?.email || !password) {
+    if (!token) {
       return
     }
 
     try {
-      const nextSession = await fetchUserFromServer(user.email, password)
+      const profile = await fetchMyProfile()
+      const nextUser = buildUser(profile)
+
       setUser((current) => {
         if (
-          current?.enabled === nextSession.user.enabled &&
-          current?.name === nextSession.user.name &&
-          current?.email === nextSession.user.email
+          current?.enabled === nextUser.enabled &&
+          current?.name === nextUser.name &&
+          current?.email === nextUser.email
         ) {
           return current
         }
 
-        return nextSession.user
+        return nextUser
       })
-      await saveUserSession(nextSession.user, password, nextSession.token)
-      setToken(nextSession.token)
+
+      await saveUserSession(nextUser, password, token)
     } catch (err) {
-      if (err.message === 'Invalid email or password.') {
-        setAuthToken(null)
-        setUser(null)
-        setPassword('')
-        await clearUserSession()
+      if (isSessionExpiredError(err.message)) {
+        await forceLogout(SESSION_EXPIRED_MESSAGE)
       }
     }
-  }, [user?.email, password])
+  }, [token, password, forceLogout])
 
   const value = useMemo(
     () => ({
       user,
       hydrated,
+      sessionMessage,
       isAccountActive: user?.enabled === true,
       refreshAccountStatus,
+      clearSessionMessage: () => setSessionMessage(''),
       async login(email, loginPassword) {
-        const nextSession = await fetchUserFromServer(email, loginPassword)
-        setUser(nextSession.user)
+        const deviceId = await getDeviceId()
+        const data = await apiUserLogin(email, loginPassword, deviceId)
+        setAuthToken(data.token)
+        const nextUser = buildUser(data.user)
+        setUser(nextUser)
         setPassword(loginPassword)
-        setToken(nextSession.token)
-        await saveUserSession(nextSession.user, loginPassword, nextSession.token)
-        return nextSession.user
+        setToken(data.token)
+        setSessionMessage('')
+        await saveUserSession(nextUser, loginPassword, data.token)
+        return nextUser
       },
       async register(name, email, registerPassword) {
-        const data = await apiUserRegister(name, email, registerPassword)
+        const deviceId = await getDeviceId()
+        const data = await apiUserRegister(name, email, registerPassword, deviceId)
         setAuthToken(data.token)
         const nextUser = buildUser(data.user)
         setUser(nextUser)
         setPassword(registerPassword)
         setToken(data.token)
+        setSessionMessage('')
         await saveUserSession(nextUser, registerPassword, data.token)
         return nextUser
       },
@@ -159,15 +187,22 @@ export function AuthProvider({ children }) {
         setPassword(newPassword)
         await saveUserSession(user, newPassword, token)
       },
-      logout() {
+      async logout() {
+        try {
+          await apiUserLogout()
+        } catch {
+          // Ignore logout errors.
+        }
+
         setAuthToken(null)
         setToken(null)
         setUser(null)
         setPassword('')
-        clearUserSession()
+        setSessionMessage('')
+        await clearUserSession()
       },
     }),
-    [user, password, token, hydrated, refreshAccountStatus],
+    [user, password, token, hydrated, sessionMessage, refreshAccountStatus, forceLogout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

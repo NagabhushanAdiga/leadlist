@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { TextInput } from 'react-native-paper'
 import { AuthScreenLayout } from '../../src/components/AuthScreenLayout'
 import { AuthTextField } from '../../src/components/AuthTextField'
@@ -11,11 +11,18 @@ import {
 import { useAuth } from '../../src/context/AuthContext'
 
 export default function LoginScreen() {
-  const { login } = useAuth()
+  const { login, sessionMessage, clearSessionMessage } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (sessionMessage) {
+      setError(sessionMessage)
+      clearSessionMessage()
+    }
+  }, [sessionMessage, clearSessionMessage])
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {

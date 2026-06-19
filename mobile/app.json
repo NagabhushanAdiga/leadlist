@@ -14,7 +14,10 @@
     "ios": {
       "supportsTablet": true,
       "icon": "./assets/icon.png",
-      "bundleIdentifier": "com.leadlist.mobile"
+      "bundleIdentifier": "com.leadlist.mobile",
+      "infoPlist": {
+        "LSApplicationQueriesSchemes": ["tel"]
+      }
     },
     "android": {
       "package": "com.leadlist.mobile",

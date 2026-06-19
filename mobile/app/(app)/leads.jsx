@@ -3,9 +3,11 @@ import { Snackbar } from 'react-native-paper'
 import { LeadCard, LeadsEmptyState, StatusFilterBar } from '../../src/components/leads'
 import { LeadsScreenSkeleton } from '../../src/components/ScreenSkeletons'
 import { UpdateLeadStatusModal } from '../../src/components/UpdateLeadStatusModal'
+import { useAppTheme } from '../../src/context/ThemeContext'
 import { useLeadsScreen } from '../../src/hooks/useLeadsScreen'
 
 export default function LeadsScreen() {
+  const { colors } = useAppTheme()
   const {
     initialLoading,
     loadingLeads,
@@ -28,7 +30,7 @@ export default function LeadsScreen() {
 
   return (
     <>
-      <View style={styles.screen}>
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
         <StatusFilterBar
           activeFilter={activeFilter}
           onSelect={setActiveFilter}
@@ -45,7 +47,11 @@ export default function LeadsScreen() {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={<LeadsEmptyState activeFilter={activeFilter} />}
           renderItem={({ item }) => (
-            <LeadCard lead={item} onUpdateStatus={openStatusModal} />
+            <LeadCard
+              lead={item}
+              onUpdateStatus={openStatusModal}
+              onCallFeedback={setSnackbar}
+            />
           )}
         />
       </View>
@@ -72,7 +78,6 @@ export default function LeadsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F8F9FE',
   },
   list: {
     padding: 20,

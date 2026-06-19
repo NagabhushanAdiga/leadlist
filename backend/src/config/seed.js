@@ -14,6 +14,7 @@ export async function seedDefaultAdmin() {
     email: DEFAULT_ADMIN.email,
     password: DEFAULT_ADMIN.password,
     isPrimary: true,
+    role: 'super_admin',
   })
 
   console.log(`Default admin created: ${DEFAULT_ADMIN.email}`)

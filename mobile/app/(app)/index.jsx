@@ -16,7 +16,7 @@ import { fontSize } from '../../src/theme/typography'
 export default function HomeScreen() {
   const router = useRouter()
   const { user } = useAuth()
-  const { colors } = useAppTheme()
+  const { colors, isDark } = useAppTheme()
   const { initialLoading, loadingLeads, stats } = useHomeScreen()
 
   if (initialLoading || loadingLeads) {
@@ -40,23 +40,22 @@ export default function HomeScreen() {
       </View>
 
       <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Actions</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.actionsRow}
-      >
+      <View style={styles.actionsGrid}>
         {HOME_QUICK_ACTIONS.map((action) => (
-          <HomeQuickActionCard
-            key={action.id}
-            title={action.title}
-            subtitle={action.subtitle}
-            icon={action.icon}
-            color={action.color}
-            bg={action.bg}
-            onPress={() => router.push(action.href)}
-          />
+          <View key={action.id} style={styles.actionWrap}>
+            <HomeQuickActionCard
+              title={action.title}
+              subtitle={action.subtitle}
+              icon={action.icon}
+              color={action.color}
+              bg={action.bg}
+              colors={colors}
+              isDark={isDark}
+              onPress={() => router.push(action.href)}
+            />
+          </View>
         ))}
-      </ScrollView>
+      </View>
     </ScrollView>
   )
 }
@@ -85,7 +84,13 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 12,
   },
-  actionsRow: {
-    paddingHorizontal: 20,
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 14,
+  },
+  actionWrap: {
+    width: '50%',
+    padding: 6,
   },
 })

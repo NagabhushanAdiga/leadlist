@@ -35,7 +35,7 @@ export function DrawerFooter({
         mode="outlined"
         icon="logout"
         onPress={onSignOut}
-        textColor="#EF4444"
+        textColor={colors.dangerText}
         style={[styles.button, { borderColor: colors.dangerBorder, backgroundColor: colors.dangerSoft }]}
         contentStyle={styles.buttonContent}
         labelStyle={styles.signOutLabel}

@@ -1,16 +1,22 @@
 import { apiRequest } from './httpClient.js'
 
-export function userLogin(email, password) {
+export function userLogin(email, password, deviceId) {
   return apiRequest('/auth/user-login', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, deviceId }),
   })
 }
 
-export function userRegister(name, email, password) {
+export function userRegister(name, email, password, deviceId) {
   return apiRequest('/auth/user-register', {
     method: 'POST',
-    body: JSON.stringify({ name, email, password }),
+    body: JSON.stringify({ name, email, password, deviceId }),
+  })
+}
+
+export function userLogout() {
+  return apiRequest('/auth/user-logout', {
+    method: 'POST',
   })
 }
 

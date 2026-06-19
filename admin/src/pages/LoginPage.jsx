@@ -1,22 +1,24 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Container,
+  Grid,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material'
 import { api } from '../services'
 import { useAuth } from '../context/AuthContext'
-import './LoginPage.css'
 
 const FEATURES = [
-  {
-    title: 'User management',
-    text: 'Create, edit, and remove mobile app users from one place.',
-  },
-  {
-    title: 'Lead tracking',
-    text: 'Monitor lead status, follow-ups, and loan pipeline updates.',
-  },
-  {
-    title: 'Excel imports',
-    text: 'Upload spreadsheets and sync lead data across the platform.',
-  },
+  { title: 'User management', text: 'Create, edit, and remove mobile app users from one place.' },
+  { title: 'Lead tracking', text: 'Monitor lead status, follow-ups, and loan pipeline updates.' },
+  { title: 'Excel imports', text: 'Upload spreadsheets and sync lead data across the platform.' },
 ]
 
 export function LoginPage() {
@@ -48,68 +50,71 @@ export function LoginPage() {
   }
 
   return (
-    <div className="login-split">
-      <section className="login-split-left">
-        <div className="login-split-left-inner">
-          <div className="login-brand-badge">LL</div>
-          <h1>Lead List Admin</h1>
-          <p className="login-tagline">
+    <Box sx={{ minHeight: '100vh', display: 'flex' }}>
+      <Box
+        sx={{
+          display: { xs: 'none', md: 'flex' },
+          flex: 1,
+          background: 'linear-gradient(135deg, #6c63ff 0%, #8b5cf6 100%)',
+          color: '#fff',
+          p: 6,
+          alignItems: 'center',
+        }}
+      >
+        <Box sx={{ maxWidth: 480 }}>
+          <Box sx={{ width: 56, height: 56, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.2)', display: 'grid', placeItems: 'center', fontWeight: 700, mb: 2 }}>
+            LL
+          </Box>
+          <Typography variant="h3" fontWeight={700} gutterBottom>
+            Lead List Admin
+          </Typography>
+          <Typography variant="body1" sx={{ opacity: 0.9, mb: 4 }}>
             Central control panel for your mobile sales team, leads, and imports.
-          </p>
-
-          <ul className="login-feature-list">
+          </Typography>
+          <Stack spacing={2}>
             {FEATURES.map((item) => (
-              <li key={item.title}>
-                <span className="login-feature-dot" />
-                <div>
-                  <strong>{item.title}</strong>
-                  <p>{item.text}</p>
-                </div>
-              </li>
+              <Box key={item.title}>
+                <Typography fontWeight={700}>{item.title}</Typography>
+                <Typography variant="body2" sx={{ opacity: 0.85 }}>
+                  {item.text}
+                </Typography>
+              </Box>
             ))}
-          </ul>
-        </div>
-      </section>
+          </Stack>
+        </Box>
+      </Box>
 
-      <section className="login-split-right">
-        <form className="login-form-card" onSubmit={handleSubmit}>
-          <p className="login-form-eyebrow">Admin access</p>
-          <h2>Sign in</h2>
-          <p className="login-form-subtitle">Enter your credentials to open the dashboard</p>
+      <Box sx={{ flex: 1, display: 'grid', placeItems: 'center', p: 3 }}>
+        <Container maxWidth="sm">
+          <Card>
+            <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+              <Typography variant="caption" color="primary" fontWeight={700}>
+                ADMIN ACCESS
+              </Typography>
+              <Typography variant="h5" sx={{ mt: 0.5, mb: 0.5 }}>
+                Sign in
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Enter your credentials to open the dashboard
+              </Typography>
 
-          <div className="field">
-            <label htmlFor="email">Email address</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@leadlist.com"
-              required
-            />
-          </div>
-
-          <div className="field">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-            />
-          </div>
-
-          {error ? <p className="error-text">{error}</p> : null}
-
-          <button className="btn btn-primary login-submit" type="submit" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-
-          <p className="login-hint">Default: admin@leadlist.com / admin123</p>
-        </form>
-      </section>
-    </div>
+              <Box component="form" onSubmit={handleSubmit}>
+                <Stack spacing={2}>
+                  <TextField label="Email address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required fullWidth />
+                  <TextField label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required fullWidth />
+                  {error ? <Alert severity="error">{error}</Alert> : null}
+                  <Button type="submit" variant="contained" size="large" disabled={loading} fullWidth>
+                    {loading ? 'Signing in...' : 'Sign In'}
+                  </Button>
+                  <Typography variant="caption" color="text.secondary" textAlign="center">
+                    Default: admin@leadlist.com / admin123
+                  </Typography>
+                </Stack>
+              </Box>
+            </CardContent>
+          </Card>
+        </Container>
+      </Box>
+    </Box>
   )
 }

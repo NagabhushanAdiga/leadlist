@@ -1,9 +1,11 @@
 import { useMemo } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { LEAD_STATUSES } from '../../constants/leadStatuses'
+import { useAppTheme } from '../../context/ThemeContext'
 import { StatusFilterChip } from './StatusFilterChip'
 
 export function StatusFilterBar({ activeFilter, onSelect, leads }) {
+  const { colors } = useAppTheme()
   const countsByStatus = useMemo(() => {
     return leads.reduce((acc, lead) => {
       acc[lead.status] = (acc[lead.status] || 0) + 1
@@ -12,7 +14,12 @@ export function StatusFilterBar({ activeFilter, onSelect, leads }) {
   }, [leads])
 
   return (
-    <View style={styles.filterBarWrap}>
+    <View
+      style={[
+        styles.filterBarWrap,
+        { backgroundColor: colors.surface, borderBottomColor: colors.border },
+      ]}
+    >
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -41,9 +48,7 @@ export function StatusFilterBar({ activeFilter, onSelect, leads }) {
 
 const styles = StyleSheet.create({
   filterBarWrap: {
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F1F8',
   },
   filterBar: {
     paddingHorizontal: 16,

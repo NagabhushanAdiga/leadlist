@@ -1,5 +1,6 @@
-import { Admin } from './schemas/Admin.js'
+import { Admin } from '../models/schemas/Admin.js'
 import { withoutPassword, toPlain } from '../utils/sanitize.js'
+import { ADMIN_ROLES } from '../utils/adminRoles.js'
 
 export const AdminModel = {
   async findAll() {
@@ -23,11 +24,15 @@ export const AdminModel = {
   },
 
   async create(payload) {
+    const role =
+      payload.role === ADMIN_ROLES.SUPER_ADMIN ? ADMIN_ROLES.SUPER_ADMIN : ADMIN_ROLES.ADMIN
+
     const admin = await Admin.create({
       name: payload.name.trim(),
       email: payload.email.trim(),
       password: payload.password.trim(),
       isPrimary: false,
+      role,
     })
 
     return toPlain(admin)

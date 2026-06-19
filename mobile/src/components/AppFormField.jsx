@@ -1,20 +1,25 @@
 import { StyleSheet, View } from 'react-native'
 import { Text, TextInput } from 'react-native-paper'
+import { useAppTheme } from '../context/ThemeContext'
 import { fontSize } from '../theme/typography'
+
 const inputTheme = {
   roundness: 8,
   animation: {
     scale: 0,
   },
 }
+
 export function AppFormField({ label, ...props }) {
+  const { colors } = useAppTheme()
+
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
       <TextInput
         mode="outlined"
         placeholder={`Enter ${label.toLowerCase()}`}
-        style={styles.input}
+        style={[styles.input, { backgroundColor: colors.inputBg }]}
         contentStyle={styles.inputContent}
         outlineStyle={styles.inputOutline}
         theme={inputTheme}
@@ -31,11 +36,9 @@ const styles = StyleSheet.create({
   label: {
     fontSize: fontSize.md,
     fontWeight: '600',
-    color: '#1A1A2E',
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#FFFFFF',
     fontSize: fontSize.lg,
   },
   inputContent: {

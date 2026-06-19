@@ -1,12 +1,14 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { FlatList, StyleSheet, View } from 'react-native';
-import { Text } from 'react-native-paper';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { Snackbar, Text } from 'react-native-paper';
 import { getReminderDayLabel, getStatusDatePrefix, REMINDER_STATUSES } from '../../src/constants/leadStatuses';
+import { useAppTheme } from '../../src/context/ThemeContext';
 import { fontSize } from '../../src/theme/typography';
 import { useScreenLoading } from '../../src/hooks/useScreenLoading';
 import { getLeads } from '../../src/services/leadStorage';
+import { formatPhone, handleCall } from '../../src/utils/leadFormat';
 
 const REMINDER_OFFSETS = [3, 2, 1, 0];
 
@@ -49,56 +51,91 @@ function getUpcomingReminders(followUpDate, status) {
   }));
 }
 
-function ReminderCard({ lead }) {
+function ReminderCard({ lead, colors, onCallFeedback }) {
   const daysUntil = getDaysUntil(lead.followUpDate);
   const reminders = getUpcomingReminders(lead.followUpDate, lead.status);
   const dateLabel = getStatusDatePrefix(lead.status);
+  const hasPhone = Boolean(String(lead.phone || '').trim());
+
+  const onCallPress = async () => {
+    const result = await handleCall(lead.phone);
+
+    if (!result.ok && onCallFeedback) {
+      onCallFeedback(result.message);
+    }
+  };
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.shadow }]}>
       <View style={styles.cardHeader}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{lead.name.charAt(0)}</Text>
+        <View style={[styles.avatar, { backgroundColor: colors.primarySoft }]}>
+          <Text style={[styles.avatarText, { color: colors.primary }]}>{lead.name.charAt(0)}</Text>
         </View>
         <View style={styles.cardInfo}>
-          <Text style={styles.name}>{lead.name}</Text>
-          <Text style={styles.company}>{lead.company}</Text>
+          <Text style={[styles.name, { color: colors.text }]}>{lead.name}</Text>
+          <Text style={[styles.company, { color: colors.textSecondary }]}>{lead.company}</Text>
+          {lead.phone ? (
+            <Text style={[styles.phone, { color: colors.textSecondary }]}>
+              {formatPhone(lead.phone)}
+            </Text>
+          ) : null}
         </View>
-        <View style={styles.daysBadge}>
-          <Text style={styles.daysBadgeText}>{getDaysUntilLabel(daysUntil)}</Text>
+        <View style={[styles.daysBadge, { backgroundColor: colors.infoSoft }]}>
+          <Text style={[styles.daysBadgeText, { color: colors.info }]}>
+            {getDaysUntilLabel(daysUntil)}
+          </Text>
         </View>
       </View>
 
-      <View style={styles.followUpRow}>
-        <MaterialCommunityIcons name="calendar-clock" size={18} color="#0EA5E9" />
-        <Text style={styles.followUpDate}>
+      <View style={[styles.followUpRow, { borderTopColor: colors.border }]}>
+        <MaterialCommunityIcons name="calendar-clock" size={18} color={colors.info} />
+        <Text style={[styles.followUpDate, { color: colors.info }]}>
           {dateLabel} {formatDate(lead.followUpDate)}
         </Text>
       </View>
 
       <View style={styles.reminderList}>
-        <Text style={styles.reminderTitle}>Scheduled reminders</Text>
+        <Text style={[styles.reminderTitle, { color: colors.text }]}>Scheduled reminders</Text>
         {reminders.length > 0 ? (
           reminders.map((item) => (
             <View key={item.offset} style={styles.reminderRow}>
-              <MaterialCommunityIcons name="bell-outline" size={16} color="#6C63FF" />
-              <Text style={styles.reminderText}>{item.label} at 9:00 AM</Text>
+              <MaterialCommunityIcons name="bell-outline" size={16} color={colors.primary} />
+              <Text style={[styles.reminderText, { color: colors.textSecondary }]}>
+                {item.label} at 9:00 AM
+              </Text>
             </View>
           ))
         ) : (
-          <Text style={styles.noRemindersText}>All reminders for this follow-up have passed.</Text>
+          <Text style={[styles.noRemindersText, { color: colors.textMuted }]}>
+            All reminders for this follow-up have passed.
+          </Text>
         )}
       </View>
+
+      <Pressable
+        style={({ pressed }) => [
+          styles.callButton,
+          {
+            backgroundColor: hasPhone ? colors.primary : colors.borderStrong,
+            opacity: pressed ? 0.85 : hasPhone ? 1 : 0.55,
+          },
+        ]}
+        onPress={onCallPress}
+        disabled={!hasPhone}
+      >
+        <MaterialCommunityIcons name="phone" size={18} color={colors.onPrimary} />
+        <Text style={[styles.callButtonText, { color: colors.onPrimary }]}>Call</Text>
+      </Pressable>
     </View>
   );
 }
 
-function EmptyReminders() {
+function EmptyReminders({ colors }) {
   return (
     <View style={styles.emptyState}>
-      <MaterialCommunityIcons name="bell-off-outline" size={56} color="#D1D5DB" />
-      <Text style={styles.emptyTitle}>No reminders yet</Text>
-      <Text style={styles.emptyText}>
+      <MaterialCommunityIcons name="bell-off-outline" size={56} color={colors.disabled} />
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>No reminders yet</Text>
+      <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
         Set a lead status to Follow up, Call back, or Appointment fixed with a date in Leads List to see reminders here.
       </Text>
     </View>
@@ -106,8 +143,10 @@ function EmptyReminders() {
 }
 
 export default function RemindersScreen() {
+  const { colors } = useAppTheme();
   const loading = useScreenLoading(600);
   const [reminders, setReminders] = useState([]);
+  const [callMessage, setCallMessage] = useState('');
 
   const loadReminders = useCallback(async () => {
     const leads = await getLeads();
@@ -126,24 +165,38 @@ export default function RemindersScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingWrap}>
-        <Text style={styles.loadingText}>Loading reminders...</Text>
+      <View style={[styles.loadingWrap, { backgroundColor: colors.background }]}>
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading reminders...</Text>
       </View>
     );
   }
 
   return (
-    <FlatList
-      data={reminders}
-      keyExtractor={(item) => item.id}
-      contentContainerStyle={[
-        styles.list,
-        reminders.length === 0 && styles.listEmpty,
-      ]}
-      showsVerticalScrollIndicator={false}
-      ListEmptyComponent={<EmptyReminders />}
-      renderItem={({ item }) => <ReminderCard lead={item} />}
-    />
+    <>
+      <FlatList
+        data={reminders}
+        keyExtractor={(item) => item.id}
+        style={{ backgroundColor: colors.background }}
+        contentContainerStyle={[
+          styles.list,
+          reminders.length === 0 && styles.listEmpty,
+        ]}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={<EmptyReminders colors={colors} />}
+        renderItem={({ item }) => (
+          <ReminderCard
+            lead={item}
+            colors={colors}
+            onCallFeedback={setCallMessage}
+          />
+        )}
+      />
+      {callMessage ? (
+        <Snackbar visible onDismiss={() => setCallMessage('')} duration={3500}>
+          {callMessage}
+        </Snackbar>
+      ) : null}
+    </>
   );
 }
 
@@ -151,7 +204,6 @@ const styles = StyleSheet.create({
   list: {
     padding: 20,
     paddingBottom: 32,
-    backgroundColor: '#F8F9FE',
     flexGrow: 1,
   },
   listEmpty: {
@@ -162,18 +214,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8F9FE',
   },
   loadingText: {
-    color: '#6B7280',
     fontSize: fontSize.md,
   },
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#6C63FF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -187,13 +235,11 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 14,
-    backgroundColor: '#EEF0FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   avatarText: {
-    color: '#6C63FF',
     fontSize: fontSize.lg,
     fontWeight: '700',
   },
@@ -203,21 +249,21 @@ const styles = StyleSheet.create({
   name: {
     fontSize: fontSize.lg,
     fontWeight: '700',
-    color: '#1A1A2E',
   },
   company: {
     fontSize: fontSize.sm,
-    color: '#6B7280',
+    marginTop: 2,
+  },
+  phone: {
+    fontSize: fontSize.sm,
     marginTop: 2,
   },
   daysBadge: {
-    backgroundColor: '#E0F2FE',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 20,
   },
   daysBadgeText: {
-    color: '#0EA5E9',
     fontSize: fontSize.sm,
     fontWeight: '700',
   },
@@ -228,11 +274,9 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: '#F0F1F8',
   },
   followUpDate: {
     fontSize: fontSize.md,
-    color: '#0EA5E9',
     fontWeight: '600',
   },
   reminderList: {
@@ -242,7 +286,6 @@ const styles = StyleSheet.create({
   reminderTitle: {
     fontSize: fontSize.sm,
     fontWeight: '700',
-    color: '#1A1A2E',
     marginBottom: 4,
   },
   reminderRow: {
@@ -252,12 +295,23 @@ const styles = StyleSheet.create({
   },
   reminderText: {
     fontSize: fontSize.sm,
-    color: '#6B7280',
   },
   noRemindersText: {
     fontSize: fontSize.sm,
-    color: '#9CA3AF',
     fontStyle: 'italic',
+  },
+  callButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: 8,
+    paddingVertical: 12,
+    marginTop: 14,
+  },
+  callButtonText: {
+    fontSize: fontSize.md,
+    fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',
@@ -266,13 +320,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: fontSize.xl,
     fontWeight: '700',
-    color: '#1A1A2E',
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: fontSize.md,
-    color: '#6B7280',
     textAlign: 'center',
     lineHeight: 22,
   },

@@ -1,6 +1,25 @@
 import { useEffect, useState } from 'react'
+import AddIcon from '@mui/icons-material/Add'
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  Paper,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+} from '@mui/material'
 import { api } from '../services'
+import { UserFormPanel } from '../components/UserFormPanel'
+import { NameAvatarCell } from '../components/NameAvatarCell'
+import { PageHeader } from '../components/PageHeader'
 import { useConfirm } from '../context/ConfirmContext'
+import { useAdminAccess } from '../hooks/useAdminAccess'
 
 const EMPTY_FORM = {
   name: '',
@@ -13,9 +32,11 @@ const EMPTY_FORM = {
 
 export function UsersPage() {
   const confirm = useConfirm()
+  const { canWrite } = useAdminAccess()
   const [users, setUsers] = useState([])
   const [form, setForm] = useState(EMPTY_FORM)
   const [editingId, setEditingId] = useState(null)
+  const [panelOpen, setPanelOpen] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
@@ -28,74 +49,22 @@ export function UsersPage() {
     loadUsers()
   }, [])
 
-  const resetForm = () => {
-    setForm(EMPTY_FORM)
+  const closePanel = () => {
+    if (loading) return
+    setPanelOpen(false)
     setEditingId(null)
-  }
-
-  const handleSubmit = async (event) => {
-    event.preventDefault()
-
-    const confirmed = await confirm({
-      title: editingId ? 'Update user?' : 'Create user?',
-      message: editingId
-        ? `Save changes for ${form.name || 'this user'}?`
-        : `Create a new user account for ${form.name || form.email}?`,
-      confirmLabel: editingId ? 'Update User' : 'Create User',
-      variant: 'primary',
-    })
-
-    if (!confirmed) {
-      return
-    }
-
+    setForm(EMPTY_FORM)
     setError('')
-    setSuccess('')
-    setLoading(true)
-
-    try {
-      if (editingId) {
-        await api.updateUser(editingId, form)
-        setSuccess('User updated successfully.')
-      } else {
-        await api.createUser(form)
-        setSuccess('User created successfully.')
-      }
-
-      resetForm()
-      loadUsers()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
   }
 
-  const handleCancelEdit = async () => {
-    const confirmed = await confirm({
-      title: 'Discard changes?',
-      message: 'Cancel editing and clear the form?',
-      confirmLabel: 'Discard',
-      variant: 'warning',
-    })
-
-    if (confirmed) {
-      resetForm()
-    }
+  const openAddPanel = () => {
+    setEditingId(null)
+    setForm(EMPTY_FORM)
+    setError('')
+    setPanelOpen(true)
   }
 
-  const handleEdit = async (user) => {
-    const confirmed = await confirm({
-      title: 'Edit user?',
-      message: `Load ${user.name}'s details into the form for editing?`,
-      confirmLabel: 'Edit User',
-      variant: 'primary',
-    })
-
-    if (!confirmed) {
-      return
-    }
-
+  const openEditPanel = (user) => {
     setEditingId(user.id)
     setForm({
       name: user.name,
@@ -106,31 +75,46 @@ export function UsersPage() {
       company: user.company || '',
     })
     setError('')
-    setSuccess('')
+    setPanelOpen(true)
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    setError('')
+    setLoading(true)
+
+    try {
+      if (editingId) {
+        await api.updateUser(editingId, form)
+        setSuccess('User updated successfully.')
+      } else {
+        await api.createUser(form)
+        setSuccess('User created successfully.')
+      }
+      closePanel()
+      loadUsers()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleToggleEnabled = async (user) => {
     const nextEnabled = user.enabled !== true
-
     const confirmed = await confirm({
       title: nextEnabled ? 'Enable user?' : 'Disable user?',
       message: nextEnabled
         ? `Allow ${user.name} (${user.email}) to access the mobile app?`
-        : `Block ${user.name} (${user.email}) from accessing app pages? They can still sign in.`,
+        : `Block ${user.name} (${user.email}) from accessing app pages?`,
       confirmLabel: nextEnabled ? 'Enable User' : 'Disable User',
       variant: nextEnabled ? 'success' : 'warning',
     })
-
-    if (!confirmed) {
-      return
-    }
-
-    setError('')
-    setSuccess('')
+    if (!confirmed) return
 
     try {
       await api.updateUser(user.id, { enabled: nextEnabled })
-      setSuccess(nextEnabled ? 'User enabled successfully.' : 'User disabled successfully.')
+      setSuccess(nextEnabled ? 'User enabled.' : 'User disabled.')
       loadUsers()
     } catch (err) {
       setError(err.message)
@@ -140,136 +124,95 @@ export function UsersPage() {
   const handleDelete = async (user) => {
     const confirmed = await confirm({
       title: 'Delete user?',
-      message: `Permanently remove ${user.name} (${user.email})? This action cannot be undone.`,
+      message: `Permanently remove ${user.name} (${user.email})?`,
       confirmLabel: 'Delete User',
       variant: 'danger',
     })
-
-    if (!confirmed) {
-      return
-    }
+    if (!confirmed) return
 
     try {
       await api.deleteUser(user.id)
-      loadUsers()
-      if (editingId === user.id) resetForm()
+      if (editingId === user.id) closePanel()
       setSuccess('User deleted successfully.')
-      setError('')
+      loadUsers()
     } catch (err) {
       setError(err.message)
     }
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <p>Create and manage mobile app users</p>
-      </div>
+    <Box>
+      <PageHeader
+        subtitle="Create and manage mobile app users"
+        actionLabel={canWrite ? 'Add User' : undefined}
+        actionIcon={canWrite ? <AddIcon /> : undefined}
+        onAction={canWrite ? openAddPanel : undefined}
+      />
 
-      <div className="card" style={{ marginBottom: 20 }}>
-        <h3 style={{ marginTop: 0 }}>{editingId ? 'Edit User' : 'Add User'}</h3>
-        <form onSubmit={handleSubmit}>
-          <div className="form-grid">
-            <div className="field">
-              <label>Name</label>
-              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-            </div>
-            <div className="field">
-              <label>Email</label>
-              <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-            </div>
-            <div className="field">
-              <label>{editingId ? 'New Password (optional)' : 'Password'}</label>
-              <input
-                type="password"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                required={!editingId}
-              />
-            </div>
-            <div className="field">
-              <label>Mobile</label>
-              <input value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} />
-            </div>
-            <div className="field">
-              <label>Role</label>
-              <input value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} />
-            </div>
-            <div className="field">
-              <label>Company</label>
-              <input value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
-            </div>
-          </div>
+      {error && !panelOpen ? <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert> : null}
+      {success ? <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert> : null}
 
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn btn-primary" type="submit" disabled={loading}>
-              {editingId ? 'Update User' : 'Create User'}
-            </button>
-            {editingId ? (
-              <button className="btn btn-danger" type="button" onClick={handleCancelEdit}>
-                Cancel
-              </button>
-            ) : null}
-          </div>
+      <TableContainer component={Paper}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Name</TableCell>
+              <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Mobile</TableCell>
+              <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>Role</TableCell>
+              <TableCell>Status</TableCell>
+              {canWrite ? <TableCell align="right">Actions</TableCell> : null}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {users.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={canWrite ? 5 : 4} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                  No users yet. Click Add User to create one.
+                </TableCell>
+              </TableRow>
+            ) : (
+              users.map((user) => (
+                <TableRow key={user.id} hover>
+                  <TableCell>
+                    <NameAvatarCell name={user.name} email={user.email} />
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{user.mobile || '—'}</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>{user.role || '—'}</TableCell>
+                  <TableCell>
+                    <Chip label={user.enabled ? 'Enabled' : 'Disabled'} color={user.enabled ? 'success' : 'default'} size="small" />
+                  </TableCell>
+                  {canWrite ? (
+                    <TableCell align="right">
+                      <Stack direction="row" spacing={1} justifyContent="flex-end" flexWrap="wrap">
+                        <Button size="small" variant="outlined" onClick={() => handleToggleEnabled(user)}>
+                          {user.enabled ? 'Disable' : 'Enable'}
+                        </Button>
+                        <Button size="small" variant="contained" onClick={() => openEditPanel(user)}>
+                          Edit
+                        </Button>
+                        <Button size="small" variant="outlined" color="error" onClick={() => handleDelete(user)}>
+                          Delete
+                        </Button>
+                      </Stack>
+                    </TableCell>
+                  ) : null}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-          {error ? <p className="error-text">{error}</p> : null}
-          {success ? <p className="success-text">{success}</p> : null}
-        </form>
-      </div>
-
-      <div className="card table-wrap">
-        <h3 style={{ marginTop: 0 }}>All Users</h3>
-        {users.length === 0 ? (
-          <p className="empty-state">No users yet. Create one above.</p>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Mobile</th>
-                <th>Role</th>
-                <th>Company</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td>{user.name}</td>
-                  <td>{user.email}</td>
-                  <td>{user.mobile || '-'}</td>
-                  <td>{user.role || '-'}</td>
-                  <td>{user.company || '-'}</td>
-                  <td>
-                    <span
-                      className={`status-badge ${user.enabled === true ? 'status-enabled' : 'status-disabled'}`}
-                    >
-                      {user.enabled === true ? 'Enabled' : 'Disabled'}
-                    </span>
-                  </td>
-                  <td style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <button
-                      className={`btn ${user.enabled === true ? 'btn-warning' : 'btn-primary'}`}
-                      type="button"
-                      onClick={() => handleToggleEnabled(user)}
-                    >
-                      {user.enabled === true ? 'Disable' : 'Enable'}
-                    </button>
-                    <button className="btn btn-primary" type="button" onClick={() => handleEdit(user)}>
-                      Edit
-                    </button>
-                    <button className="btn btn-danger" type="button" onClick={() => handleDelete(user)}>
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
+      <UserFormPanel
+        open={panelOpen}
+        isEditing={Boolean(editingId)}
+        form={form}
+        loading={loading}
+        error={error}
+        onChange={(updates) => setForm((c) => ({ ...c, ...updates }))}
+        onSubmit={handleSubmit}
+        onClose={closePanel}
+      />
+    </Box>
   )
 }

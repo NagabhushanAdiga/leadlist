@@ -15,6 +15,8 @@ export {
   importMyLeadsFromExcel,
 } from './leadService.js'
 
+export { submitFeedback } from './feedbackService.js'
+
 export {
   getLeads,
   importLeadsFromExcel,

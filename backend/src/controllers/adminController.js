@@ -1,6 +1,7 @@
 import { AdminModel } from '../models/adminModel.js'
 import { withoutPassword } from '../utils/sanitize.js'
 import { recordAudit } from '../utils/auditLog.js'
+import { ADMIN_ROLES } from '../utils/adminRoles.js'
 
 export const AdminController = {
   async list(_req, res) {
@@ -8,7 +9,7 @@ export const AdminController = {
   },
 
   async create(req, res) {
-    const { name, email, password } = req.body
+    const { name, email, password, role } = req.body
 
     if (!name?.trim() || !email?.trim() || !password?.trim()) {
       return res.status(400).json({ message: 'Name, email, and password are required.' })
@@ -22,7 +23,10 @@ export const AdminController = {
       return res.status(400).json({ message: 'An admin with this email already exists.' })
     }
 
-    const admin = await AdminModel.create({ name, email, password })
+    const nextRole =
+      role === ADMIN_ROLES.SUPER_ADMIN ? ADMIN_ROLES.SUPER_ADMIN : ADMIN_ROLES.ADMIN
+
+    const admin = await AdminModel.create({ name, email, password, role: nextRole })
     const publicAdmin = withoutPassword(admin)
 
     await recordAudit(req, {
@@ -34,6 +38,7 @@ export const AdminController = {
       changes: [
         { field: 'name', from: null, to: publicAdmin.name },
         { field: 'email', from: null, to: publicAdmin.email },
+        { field: 'role', from: null, to: publicAdmin.role },
       ],
     })
 

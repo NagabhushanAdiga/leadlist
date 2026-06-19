@@ -18,3 +18,16 @@ export function getExcelUploads(params = {}) {
   const query = search.toString()
   return request(`/excel-uploads${query ? `?${query}` : ''}`)
 }
+
+export function deleteExcelUpload(uploadId, complete = false) {
+  const query = complete ? '?complete=true' : ''
+  return request(`/excel-uploads/${uploadId}${query}`, {
+    method: 'DELETE',
+  })
+}
+
+export function deleteAllExcelDataForUser(userId) {
+  return request(`/excel-uploads/user/${userId}`, {
+    method: 'DELETE',
+  })
+}

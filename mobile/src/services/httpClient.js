@@ -1,6 +1,7 @@
 import { API_BASE_URL } from './config.js'
 
 let authToken = null
+let onUnauthorized = null
 
 export function setAuthToken(token) {
   authToken = token || null
@@ -10,10 +11,25 @@ export function getAuthToken() {
   return authToken
 }
 
+export function setUnauthorizedHandler(handler) {
+  onUnauthorized = handler
+}
+
+let handlingUnauthorized = false
+
 export async function parseResponse(response) {
   const data = await response.json().catch(() => ({}))
 
   if (!response.ok) {
+    if (response.status === 401 && onUnauthorized && !handlingUnauthorized) {
+      handlingUnauthorized = true
+      try {
+        onUnauthorized(data.message || 'Unauthorized')
+      } finally {
+        handlingUnauthorized = false
+      }
+    }
+
     throw new Error(data.message || 'Request failed')
   }
 

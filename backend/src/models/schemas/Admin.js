@@ -8,6 +8,12 @@ const adminSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true },
     isPrimary: { type: Boolean, default: false },
+    role: {
+      type: String,
+      enum: ['super_admin', 'admin'],
+      default: 'admin',
+      index: true,
+    },
   },
   { timestamps: true },
 )

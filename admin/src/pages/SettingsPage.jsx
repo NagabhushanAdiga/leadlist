@@ -1,25 +1,37 @@
 import { useEffect, useState } from 'react'
+import AddIcon from '@mui/icons-material/Add'
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  Paper,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+} from '@mui/material'
 import { api } from '../services'
+import { AdminFormPanel } from '../components/AdminFormPanel'
+import { PageHeader } from '../components/PageHeader'
 import { useAuth } from '../context/AuthContext'
 import { useConfirm } from '../context/ConfirmContext'
+import { useAdminAccess } from '../hooks/useAdminAccess'
+import { getAdminRoleLabel, resolveAdminRole } from '../utils/adminRoles'
 
-const EMPTY_FORM = {
-  name: '',
-  email: '',
-  password: '',
-  confirmPassword: '',
-}
-
-function formatDate(value) {
-  if (!value) return '-'
-  return new Date(value).toLocaleDateString()
-}
+const EMPTY_FORM = { name: '', email: '', password: '', confirmPassword: '', role: 'admin' }
 
 export function SettingsPage() {
   const confirm = useConfirm()
   const { admin: currentAdmin } = useAuth()
+  const { canWrite, isSuperAdmin } = useAdminAccess()
   const [admins, setAdmins] = useState([])
   const [form, setForm] = useState(EMPTY_FORM)
+  const [panelOpen, setPanelOpen] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
@@ -32,14 +44,16 @@ export function SettingsPage() {
     loadAdmins()
   }, [])
 
-  const resetForm = () => {
+  const closePanel = () => {
+    if (loading) return
+    setPanelOpen(false)
     setForm(EMPTY_FORM)
+    setError('')
   }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
-    setSuccess('')
 
     if (form.password !== form.confirmPassword) {
       setError('Passwords do not match.')
@@ -51,27 +65,16 @@ export function SettingsPage() {
       return
     }
 
-    const confirmed = await confirm({
-      title: 'Add admin?',
-      message: `Create a new admin account for ${form.name} (${form.email})?`,
-      confirmLabel: 'Add Admin',
-      variant: 'primary',
-    })
-
-    if (!confirmed) {
-      return
-    }
-
     setLoading(true)
-
     try {
       await api.createAdmin({
         name: form.name,
         email: form.email,
         password: form.password,
+        role: form.role,
       })
       setSuccess('Admin added successfully.')
-      resetForm()
+      closePanel()
       loadAdmins()
     } catch (err) {
       setError(err.message)
@@ -87,15 +90,11 @@ export function SettingsPage() {
       confirmLabel: 'Remove Admin',
       variant: 'danger',
     })
-
-    if (!confirmed) {
-      return
-    }
+    if (!confirmed) return
 
     try {
       await api.deleteAdmin(admin.id)
       setSuccess('Admin removed successfully.')
-      setError('')
       loadAdmins()
     } catch (err) {
       setError(err.message)
@@ -103,119 +102,78 @@ export function SettingsPage() {
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <p>Manage admin accounts and panel access</p>
-      </div>
+    <Box>
+      <PageHeader
+        subtitle="Manage admin accounts and panel access"
+        actionLabel={canWrite ? 'Add Admin' : undefined}
+        actionIcon={canWrite ? <AddIcon /> : undefined}
+        onAction={canWrite ? () => { setForm(EMPTY_FORM); setError(''); setPanelOpen(true) } : undefined}
+      />
 
-      <div className="card" style={{ marginBottom: 20 }}>
-        <h3 style={{ marginTop: 0 }}>Add Admin</h3>
-        <form onSubmit={handleSubmit}>
-          <div className="form-grid">
-            <div className="field">
-              <label>Full name</label>
-              <input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Admin name"
-                required
-              />
-            </div>
-            <div className="field">
-              <label>Email</label>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="admin@company.com"
-                required
-              />
-            </div>
-            <div className="field">
-              <label>Password</label>
-              <input
-                type="password"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder="Minimum 6 characters"
-                required
-              />
-            </div>
-            <div className="field">
-              <label>Confirm password</label>
-              <input
-                type="password"
-                value={form.confirmPassword}
-                onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-                placeholder="Re-enter password"
-                required
-              />
-            </div>
-          </div>
+      {error && !panelOpen ? <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert> : null}
+      {success ? <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert> : null}
 
-          <button className="btn btn-primary" type="submit" disabled={loading}>
-            {loading ? 'Adding...' : 'Add Admin'}
-          </button>
-
-          {error ? <p className="error-text">{error}</p> : null}
-          {success ? <p className="success-text">{success}</p> : null}
-        </form>
-      </div>
-
-      <div className="card table-wrap">
-        <h3 style={{ marginTop: 0 }}>Admin Accounts</h3>
-        {admins.length === 0 ? (
-          <p className="empty-state">No admin accounts found.</p>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Added</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {admins.map((admin) => (
-                <tr key={admin.id}>
-                  <td>{admin.name}</td>
-                  <td>{admin.email}</td>
-                  <td>
-                    <span
-                      className={`status-badge ${admin.isPrimary ? 'status-enabled' : 'status-disabled'}`}
-                      style={
-                        admin.isPrimary
-                          ? undefined
-                          : { background: '#eef0ff', color: '#6c63ff' }
-                      }
-                    >
-                      {admin.isPrimary ? 'Primary' : 'Admin'}
-                    </span>
-                  </td>
-                  <td>{formatDate(admin.createdAt)}</td>
-                  <td>
+      <TableContainer component={Paper}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Name</TableCell>
+              <TableCell>Email</TableCell>
+              <TableCell>Access</TableCell>
+              <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Added</TableCell>
+              <TableCell align="right">Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {admins.map((admin) => (
+              <TableRow key={admin.id} hover>
+                <TableCell>{admin.name}</TableCell>
+                <TableCell>{admin.email}</TableCell>
+                <TableCell>
+                  <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                    <Chip
+                      label={getAdminRoleLabel(resolveAdminRole(admin))}
+                      color={resolveAdminRole(admin) === 'super_admin' ? 'primary' : 'default'}
+                      size="small"
+                      variant={resolveAdminRole(admin) === 'super_admin' ? 'filled' : 'outlined'}
+                    />
                     {admin.isPrimary ? (
-                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Protected</span>
-                    ) : currentAdmin?.id === admin.id ? (
-                      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Signed in</span>
-                    ) : (
-                      <button
-                        className="btn btn-danger"
-                        type="button"
-                        onClick={() => handleDelete(admin)}
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
+                      <Chip label="Primary" color="success" size="small" variant="filled" />
+                    ) : null}
+                  </Stack>
+                </TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+                  {admin.createdAt ? new Date(admin.createdAt).toLocaleDateString() : '—'}
+                </TableCell>
+                <TableCell align="right">
+                  {admin.isPrimary ? (
+                    <Typography variant="caption" color="text.secondary">Protected</Typography>
+                  ) : currentAdmin?.id === admin.id ? (
+                    <Typography variant="caption" color="text.secondary">You</Typography>
+                  ) : canWrite ? (
+                    <Button size="small" color="error" variant="outlined" onClick={() => handleDelete(admin)}>
+                      Delete
+                    </Button>
+                  ) : (
+                    <Typography variant="caption" color="text.secondary">View only</Typography>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <AdminFormPanel
+        open={panelOpen}
+        form={form}
+        loading={loading}
+        error={error}
+        onChange={(updates) => setForm((c) => ({ ...c, ...updates }))}
+        onSubmit={handleSubmit}
+        onClose={closePanel}
+        showRoleField={isSuperAdmin}
+      />
+    </Box>
   )
 }

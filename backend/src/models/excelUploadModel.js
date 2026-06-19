@@ -25,6 +25,11 @@ export const ExcelUploadModel = {
     return formatUpload(entry.toObject())
   },
 
+  async findById(uploadId) {
+    const entry = await ExcelUpload.findOne({ id: uploadId }).lean()
+    return entry ? formatUpload(entry) : null
+  },
+
   async list({ userId, page = 1, limit = 50 } = {}) {
     const query = {}
 
@@ -48,5 +53,15 @@ export const ExcelUploadModel = {
       limit: safeLimit,
       totalPages: Math.max(Math.ceil(total / safeLimit), 1),
     }
+  },
+
+  async deleteById(uploadId) {
+    const result = await ExcelUpload.deleteOne({ id: uploadId })
+    return result.deletedCount > 0
+  },
+
+  async deleteAllForUser(userId) {
+    const result = await ExcelUpload.deleteMany({ userId })
+    return result.deletedCount
   },
 }

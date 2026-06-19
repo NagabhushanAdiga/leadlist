@@ -2,8 +2,21 @@ import mongoose from 'mongoose'
 import { MONGODB_URI } from './index.js'
 import { AuditModel } from '../models/auditModel.js'
 import { ExcelUploadModel } from '../models/excelUploadModel.js'
+import { Admin } from '../models/schemas/Admin.js'
 
 let isConnected = false
+
+async function migrateAdminRoles() {
+  await Admin.updateMany(
+    { isPrimary: true, $or: [{ role: { $exists: false } }, { role: null }] },
+    { $set: { role: 'super_admin' } },
+  )
+
+  await Admin.updateMany(
+    { isPrimary: { $ne: true }, $or: [{ role: { $exists: false } }, { role: null }] },
+    { $set: { role: 'admin' } },
+  )
+}
 
 export async function connectDatabase() {
   if (isConnected && mongoose.connection.readyState === 1) {
@@ -22,6 +35,7 @@ export async function connectDatabase() {
 
   await AuditModel.ensureTable()
   await ExcelUploadModel.ensureTable()
+  await migrateAdminRoles()
 
   isConnected = true
   console.log('MongoDB connected')

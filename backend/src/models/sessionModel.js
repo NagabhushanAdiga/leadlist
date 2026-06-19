@@ -2,7 +2,7 @@ import { Session, createSessionToken } from './schemas/Session.js'
 import { UserModel } from './userModel.js'
 
 export const SessionModel = {
-  async create({ type, userId, adminId }) {
+  async create({ type, userId, adminId, deviceId }) {
     const token = createSessionToken(type)
 
     await Session.create({
@@ -10,9 +10,25 @@ export const SessionModel = {
       type,
       userId: userId || null,
       adminId: adminId || null,
+      deviceId: deviceId || null,
     })
 
     return token
+  },
+
+  async createUserSession({ userId, deviceId }) {
+    await Session.deleteMany({ type: 'user', userId })
+
+    return SessionModel.create({
+      type: 'user',
+      userId,
+      deviceId,
+    })
+  },
+
+  async deleteByToken(token) {
+    if (!token) return
+    await Session.deleteOne({ token })
   },
 
   async find(token) {

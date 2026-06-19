@@ -21,6 +21,11 @@ const ACTION_META = {
     color: '#10B981',
     bg: '#ECFDF5',
   },
+  '/(app)/feedback': {
+    subtitle: 'Share bugs and suggestions',
+    color: '#F97316',
+    bg: '#FFEDD5',
+  },
   '/(app)/settings': {
     subtitle: 'Theme and preferences',
     color: '#8B5CF6',

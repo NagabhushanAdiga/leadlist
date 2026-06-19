@@ -1,18 +1,35 @@
 import { useEffect, useState } from 'react'
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Paper,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+} from '@mui/material'
+import UploadFileIcon from '@mui/icons-material/UploadFile'
 import { api } from '../services'
+import { PageHeader } from '../components/PageHeader'
+import { buildUserOptions, SearchableSelect } from '../components/SearchableSelect'
+import { useAdminAccess } from '../hooks/useAdminAccess'
 
 function formatDate(value) {
-  if (!value) {
-    return '—'
-  }
-
-  return new Date(value).toLocaleString(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  })
+  if (!value) return '—'
+  return new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
 export function UploadPage() {
+  const { canWrite } = useAdminAccess()
   const [users, setUsers] = useState([])
   const [userId, setUserId] = useState('')
   const [historyUserId, setHistoryUserId] = useState('All')
@@ -26,12 +43,8 @@ export function UploadPage() {
 
   const loadUploads = async (selectedUserId = historyUserId) => {
     setHistoryLoading(true)
-
     try {
-      const data = await api.getExcelUploads({
-        userId: selectedUserId,
-        limit: 50,
-      })
+      const data = await api.getExcelUploads({ userId: selectedUserId, limit: 50 })
       setUploads(data.items)
       setUploadsTotal(data.total)
     } catch (err) {
@@ -42,35 +55,16 @@ export function UploadPage() {
   }
 
   useEffect(() => {
-    api
-      .getUsers()
-      .then((data) => {
-        setUsers(data)
-        if (data.length > 0) {
-          setUserId(data[0].id)
-        }
-      })
-      .catch((err) => setError(err.message))
+    api.getUsers().then((data) => { setUsers(data); if (data[0]) setUserId(data[0].id) }).catch((err) => setError(err.message))
   }, [])
 
-  useEffect(() => {
-    loadUploads(historyUserId)
-  }, [historyUserId])
+  useEffect(() => { loadUploads(historyUserId) }, [historyUserId])
 
-  const selectedUser = users.find((user) => user.id === userId)
+  const selectedUser = users.find((u) => u.id === userId)
 
   const handleUpload = async (event) => {
     event.preventDefault()
-
-    if (!userId) {
-      setError('Select a user to import leads for.')
-      return
-    }
-
-    if (!file) {
-      setError('Please select an Excel file.')
-      return
-    }
+    if (!userId || !file) { setError('Select a user and Excel file.'); return }
 
     setLoading(true)
     setError('')
@@ -78,9 +72,7 @@ export function UploadPage() {
 
     try {
       const result = await api.importLeads(file, userId)
-      setSuccess(
-        `Imported ${result.count} leads for ${result.userName} from ${result.fileName || file.name}.`,
-      )
+      setSuccess(`Imported ${result.count} leads for ${result.userName}.`)
       setFile(null)
       event.target.reset()
       loadUploads(historyUserId)
@@ -92,140 +84,95 @@ export function UploadPage() {
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <p>Upload Excel files for a specific user. Each import replaces only that user&apos;s lead list.</p>
-      </div>
+    <Box>
+      <PageHeader subtitle="Upload Excel files for a specific user" />
 
-      <div className="card" style={{ marginBottom: 20 }}>
-        <h3 style={{ marginTop: 0 }}>Import Excel for User</h3>
-        <form onSubmit={handleUpload}>
-          <p style={{ color: '#6b7280', marginTop: 0 }}>
-            Expected columns: <strong>Name, Email, Phone, Company, Role, Status (optional)</strong>
-          </p>
+      {canWrite ? (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>Import Excel for User</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Expected columns: Name, Email, Phone, Company, Role, Status (optional)
+            </Typography>
+            <Box component="form" onSubmit={handleUpload}>
+              <Stack spacing={2}>
+                <SearchableSelect
+                  label="Select user"
+                  value={userId}
+                  onChange={setUserId}
+                  options={buildUserOptions(users, { showEmail: true })}
+                  fullWidth
+                  required
+                />
+                {selectedUser ? (
+                  <Typography variant="body2" color="text.secondary">
+                    Leads will be assigned to <strong>{selectedUser.name}</strong>
+                  </Typography>
+                ) : null}
+                <Button variant="outlined" component="label">
+                  {file ? file.name : 'Choose Excel file'}
+                  <input type="file" hidden accept=".xlsx,.xls" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                </Button>
+                <Button type="submit" variant="contained" startIcon={<UploadFileIcon />} disabled={loading || !users.length}>
+                  {loading ? 'Importing...' : 'Import Leads'}
+                </Button>
+              </Stack>
+            </Box>
+          </CardContent>
+        </Card>
+      ) : null}
 
-          <div className="field" style={{ marginBottom: 16 }}>
-            <label htmlFor="import-user">Select user</label>
-            <select
-              id="import-user"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              required
-            >
-              <option value="">Select a user</option>
-              {users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name} ({user.email}){user.enabled === true ? '' : ' — disabled'}
-                </option>
+      {error ? <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert> : null}
+      {success ? <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert> : null}
+
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} sx={{ mb: 2 }}>
+        <Typography variant="h6">Upload History</Typography>
+        <SearchableSelect
+          label="Filter by user"
+          value={historyUserId}
+          onChange={setHistoryUserId}
+          options={buildUserOptions(users, { includeAll: true })}
+          minWidth={280}
+          boxSx={{ width: { xs: '100%', sm: 280 } }}
+        />
+      </Stack>
+
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{uploadsTotal} upload(s)</Typography>
+
+      {historyLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+      ) : (
+        <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>When</TableCell>
+                <TableCell>User</TableCell>
+                <TableCell>File</TableCell>
+                <TableCell>Leads</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Uploaded by</TableCell>
+                <TableCell>Source</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {uploads.length === 0 ? (
+                <TableRow><TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>No uploads yet.</TableCell></TableRow>
+              ) : uploads.map((upload) => (
+                <TableRow key={upload.id} hover>
+                  <TableCell>{formatDate(upload.createdAt)}</TableCell>
+                  <TableCell>{upload.userName}</TableCell>
+                  <TableCell>{upload.fileName}</TableCell>
+                  <TableCell>{upload.leadCount}</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{upload.uploadedByName}</TableCell>
+                  <TableCell>
+                    <Chip label={upload.source === 'admin' ? 'Admin' : 'Mobile'} size="small" color={upload.source === 'admin' ? 'primary' : 'success'} variant="outlined" />
+                  </TableCell>
+                </TableRow>
               ))}
-            </select>
-          </div>
-
-          {selectedUser ? (
-            <p style={{ color: '#6b7280', marginTop: 0, marginBottom: 16 }}>
-              Leads will be assigned to <strong>{selectedUser.name}</strong> ({selectedUser.email}).
-            </p>
-          ) : null}
-
-          {users.length === 0 ? (
-            <p className="error-text" style={{ marginBottom: 16 }}>
-              No users available. Create a user first before importing leads.
-            </p>
-          ) : null}
-
-          <div className="field" style={{ marginBottom: 16 }}>
-            <label htmlFor="excel-file">Excel file (.xlsx, .xls)</label>
-            <input
-              id="excel-file"
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              required
-            />
-          </div>
-
-          <button className="btn btn-primary" type="submit" disabled={loading || users.length === 0}>
-            {loading ? 'Importing...' : 'Import Leads for User'}
-          </button>
-
-          {error ? <p className="error-text">{error}</p> : null}
-          {success ? <p className="success-text">{success}</p> : null}
-        </form>
-      </div>
-
-      <div className="card table-wrap">
-        <div className="toolbar" style={{ marginBottom: 0 }}>
-          <h3 style={{ margin: 0 }}>Upload History by User</h3>
-          <div className="field" style={{ margin: 0, minWidth: 240 }}>
-            <label htmlFor="history-user">Filter by user</label>
-            <select
-              id="history-user"
-              value={historyUserId}
-              onChange={(e) => setHistoryUserId(e.target.value)}
-            >
-              <option value="All">All users</option>
-              {users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name} ({user.email})
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <p style={{ color: '#6b7280', margin: '12px 0 16px' }}>{uploadsTotal} upload(s)</p>
-
-        {historyLoading ? (
-          <p className="empty-state">Loading upload history...</p>
-        ) : uploads.length === 0 ? (
-          <p className="empty-state">No Excel uploads yet for this user.</p>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>When</th>
-                <th>User</th>
-                <th>File</th>
-                <th>Leads</th>
-                <th>Uploaded by</th>
-                <th>Source</th>
-              </tr>
-            </thead>
-            <tbody>
-              {uploads.map((upload) => (
-                <tr key={upload.id}>
-                  <td>{formatDate(upload.createdAt)}</td>
-                  <td>
-                    <strong>{upload.userName}</strong>
-                    <br />
-                    <span style={{ color: '#6b7280', fontSize: '0.85rem' }}>{upload.userEmail}</span>
-                  </td>
-                  <td>{upload.fileName}</td>
-                  <td>{upload.leadCount}</td>
-                  <td>
-                    <strong>{upload.uploadedByName}</strong>
-                    <br />
-                    <span style={{ color: '#6b7280', fontSize: '0.85rem' }}>
-                      {upload.uploadedByEmail} ({upload.uploadedByType})
-                    </span>
-                  </td>
-                  <td>
-                    <span
-                      className="status-badge"
-                      style={{
-                        background: upload.source === 'admin' ? '#eef0ff' : '#ecfdf5',
-                        color: upload.source === 'admin' ? '#6c63ff' : '#047857',
-                      }}
-                    >
-                      {upload.source === 'admin' ? 'Admin panel' : 'Mobile app'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+    </Box>
   )
 }

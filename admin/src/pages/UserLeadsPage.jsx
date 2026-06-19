@@ -1,8 +1,30 @@
 import { useEffect, useState } from 'react'
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  Paper,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+} from '@mui/material'
+import DownloadIcon from '@mui/icons-material/Download'
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import { api } from '../services'
-import { LEAD_STATUSES, STATUS_COLORS } from '../constants/leadStatuses'
+import { PageHeader } from '../components/PageHeader'
+import { buildUserOptions, SearchableSelect } from '../components/SearchableSelect'
+import { STATUS_COLORS } from '../constants/leadStatuses'
+import { useAdminAccess } from '../hooks/useAdminAccess'
 
 export function UserLeadsPage() {
+  const { canWrite } = useAdminAccess()
   const [users, setUsers] = useState([])
   const [userId, setUserId] = useState('')
   const [leads, setLeads] = useState([])
@@ -11,49 +33,24 @@ export function UserLeadsPage() {
   const [downloading, setDownloading] = useState('')
 
   useEffect(() => {
-    api
-      .getUsers()
-      .then((data) => {
-        setUsers(data)
-        if (data.length > 0) {
-          setUserId(data[0].id)
-        }
-      })
-      .catch((err) => setError(err.message))
+    api.getUsers().then((data) => { setUsers(data); if (data[0]) setUserId(data[0].id) }).catch((err) => setError(err.message))
   }, [])
 
   useEffect(() => {
-    if (!userId) {
-      setLeads([])
-      return
-    }
-
+    if (!userId) { setLeads([]); return }
     setLoading(true)
-    setError('')
-
-    api
-      .getLeads(userId)
-      .then(setLeads)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false))
+    api.getLeads(userId).then(setLeads).catch((err) => setError(err.message)).finally(() => setLoading(false))
   }, [userId])
 
-  const selectedUser = users.find((user) => user.id === userId)
+  const selectedUser = users.find((u) => u.id === userId)
 
   const handleDownload = async (type) => {
-    if (!selectedUser) {
-      return
-    }
-
+    if (!selectedUser) return
     setDownloading(type)
     setError('')
-
     try {
-      if (type === 'excel') {
-        await api.downloadUserLeadsExcel(selectedUser.id, selectedUser.name)
-      } else {
-        await api.downloadUserLeadsPdf(selectedUser.id, selectedUser.name)
-      }
+      if (type === 'excel') await api.downloadUserLeadsExcel(selectedUser.id, selectedUser.name)
+      else await api.downloadUserLeadsPdf(selectedUser.id, selectedUser.name)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -62,106 +59,70 @@ export function UserLeadsPage() {
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <p>View a user&apos;s lead list and download it as Excel or PDF.</p>
-      </div>
+    <Box>
+      <PageHeader subtitle="View a user's lead list and download as Excel or PDF" />
 
-      <div className="toolbar">
-        <div className="field" style={{ margin: 0, minWidth: 280 }}>
-          <label htmlFor="view-user">Select user</label>
-          <select id="view-user" value={userId} onChange={(e) => setUserId(e.target.value)}>
-            <option value="">Select a user</option>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.name} ({user.email})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={!userId || downloading === 'excel'}
-            onClick={() => handleDownload('excel')}
-          >
-            {downloading === 'excel' ? 'Downloading...' : 'Download Excel'}
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={!userId || downloading === 'pdf'}
-            onClick={() => handleDownload('pdf')}
-          >
-            {downloading === 'pdf' ? 'Downloading...' : 'Download PDF'}
-          </button>
-        </div>
-      </div>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }} alignItems={{ sm: 'center' }}>
+        <SearchableSelect
+          label="Select user"
+          value={userId}
+          onChange={setUserId}
+          options={buildUserOptions(users, { showEmail: true })}
+          minWidth={320}
+          boxSx={{ flex: { xs: '1 1 100%', sm: '1 1 320px' }, maxWidth: { sm: 480 } }}
+        />
+        {canWrite ? (
+          <>
+            <Button variant="contained" startIcon={<DownloadIcon />} disabled={!userId || downloading === 'excel'} onClick={() => handleDownload('excel')}>
+              {downloading === 'excel' ? 'Downloading...' : 'Excel'}
+            </Button>
+            <Button variant="outlined" startIcon={<PictureAsPdfIcon />} disabled={!userId || downloading === 'pdf'} onClick={() => handleDownload('pdf')}>
+              {downloading === 'pdf' ? 'Downloading...' : 'PDF'}
+            </Button>
+          </>
+        ) : null}
+      </Stack>
 
       {selectedUser ? (
-        <p style={{ color: '#6b7280', margin: '0 0 16px' }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Showing {leads.length} lead(s) for <strong>{selectedUser.name}</strong>
-        </p>
+        </Typography>
       ) : null}
 
-      {error ? <p className="error-text">{error}</p> : null}
+      {error ? <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert> : null}
 
-      <div className="card table-wrap">
-        {loading ? (
-          <p className="empty-state">Loading leads...</p>
-        ) : !userId ? (
-          <p className="empty-state">Select a user to view their lead list.</p>
-        ) : leads.length === 0 ? (
-          <p className="empty-state">No leads found for this user. Upload an Excel file first.</p>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Company</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Follow Up</th>
-                <th>Rejection Reason</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leads.map((lead) => (
-                <tr key={lead.id}>
-                  <td>{lead.name}</td>
-                  <td>{lead.email || '—'}</td>
-                  <td>{lead.phone || '—'}</td>
-                  <td>{lead.company || '—'}</td>
-                  <td>{lead.role || '—'}</td>
-                  <td>
-                    <span
-                      className="status-badge"
-                      style={{
-                        background: `${STATUS_COLORS[lead.status] || '#6b7280'}22`,
-                        color: STATUS_COLORS[lead.status] || '#6b7280',
-                      }}
-                    >
-                      {lead.status}
-                    </span>
-                  </td>
-                  <td>{lead.followUpDate || '—'}</td>
-                  <td>{lead.rejectionReason || '—'}</td>
-                </tr>
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+      ) : (
+        <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Name</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Email</TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Phone</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>Follow Up</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {leads.length === 0 ? (
+                <TableRow><TableCell colSpan={5} align="center" sx={{ py: 4, color: 'text.secondary' }}>No leads for this user.</TableCell></TableRow>
+              ) : leads.map((lead) => (
+                <TableRow key={lead.id} hover>
+                  <TableCell>{lead.name}</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{lead.email || '—'}</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{lead.phone || '—'}</TableCell>
+                  <TableCell>
+                    <Chip label={lead.status} size="small" sx={{ bgcolor: `${STATUS_COLORS[lead.status]}22`, color: STATUS_COLORS[lead.status] }} />
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>{lead.followUpDate || '—'}</TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {leads.length > 0 ? (
-        <p style={{ color: '#6b7280', marginTop: 16 }}>
-          Status options: {LEAD_STATUSES.join(', ')}
-        </p>
-      ) : null}
-    </div>
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+    </Box>
   )
 }

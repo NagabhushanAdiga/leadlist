@@ -70,6 +70,11 @@ export const LeadModel = {
     return result.deletedCount > 0
   },
 
+  async deleteAllForUser(userId) {
+    const result = await Lead.deleteMany({ userId })
+    return result.deletedCount
+  },
+
   async importForUser(userId, parsedLeads) {
     await Lead.deleteMany({ userId })
 

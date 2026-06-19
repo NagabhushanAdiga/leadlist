@@ -3,11 +3,14 @@ import { useEffect, useState } from 'react'
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native'
 import { Text } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useAppTheme } from '../context/ThemeContext'
 import { gradients } from '../theme'
 
 export function AuthScreenLayout({ title, subtitle, children, footer }) {
   const insets = useSafeAreaInsets()
+  const { colors } = useAppTheme()
   const [keyboardVisible, setKeyboardVisible] = useState(false)
+
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
@@ -18,9 +21,10 @@ export function AuthScreenLayout({ title, subtitle, children, footer }) {
       hideSub.remove()
     }
   }, [])
+
   return (
     <KeyboardAvoidingView
-      style={styles.root}
+      style={[styles.root, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
@@ -50,7 +54,7 @@ export function AuthScreenLayout({ title, subtitle, children, footer }) {
         </View>
       </LinearGradient>
 
-      <View style={styles.formSection}>
+      <View style={[styles.formSection, { backgroundColor: colors.surface }]}>
         <ScrollView
           style={styles.flex}
           contentContainerStyle={[
@@ -75,7 +79,6 @@ export function AuthScreenLayout({ title, subtitle, children, footer }) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   topSection: {
     justifyContent: 'center',
@@ -89,7 +92,6 @@ const styles = StyleSheet.create({
   },
   formSection: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     marginTop: -16,

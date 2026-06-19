@@ -1,8 +1,15 @@
 import { ScrollView, StyleSheet, View } from 'react-native'
+import { useAppTheme } from '../context/ThemeContext'
 import { ShimmerBox } from './Shimmer'
+
 export function HomeScreenSkeleton() {
+  const { colors } = useAppTheme()
+
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={[styles.root, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.content}
+    >
       <ShimmerBox height={120} borderRadius={20} style={styles.banner} />
 
       <View style={styles.statsGrid}>
@@ -26,10 +33,12 @@ export function HomeScreenSkeleton() {
 }
 
 export function LeadsScreenSkeleton() {
+  const { colors } = useAppTheme()
+
   return (
-    <View style={styles.leadsList}>
+    <View style={[styles.leadsList, { backgroundColor: colors.background }]}>
       {[1, 2, 3, 4].map((item) => (
-        <View key={item} style={styles.leadCard}>
+        <View key={item} style={[styles.leadCard, { backgroundColor: colors.card }]}>
           <View style={styles.leadTop}>
             <ShimmerBox width={46} height={46} borderRadius={14} />
             <View style={styles.leadInfo}>
@@ -47,15 +56,20 @@ export function LeadsScreenSkeleton() {
 }
 
 export function ProfileScreenSkeleton() {
+  const { colors } = useAppTheme()
+
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
-      <View style={styles.profileHeader}>
+    <ScrollView
+      style={[styles.root, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.content}
+    >
+      <View style={[styles.profileHeader, { backgroundColor: colors.card }]}>
         <ShimmerBox width={88} height={88} borderRadius={44} style={styles.mb16} />
         <ShimmerBox width={160} height={22} style={styles.mb8} />
         <ShimmerBox width={200} height={14} />
       </View>
 
-      <View style={styles.profileDetails}>
+      <View style={[styles.profileDetails, { backgroundColor: colors.card }]}>
         <ShimmerBox width={120} height={16} style={styles.mb16} />
         {[1, 2, 3, 4].map((item) => (
           <View key={item} style={styles.detailRow}>
@@ -74,7 +88,6 @@ export function ProfileScreenSkeleton() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F8F9FE',
   },
   content: {
     padding: 20,
@@ -105,11 +118,9 @@ const styles = StyleSheet.create({
   },
   leadsList: {
     padding: 20,
-    backgroundColor: '#F8F9FE',
     flex: 1,
   },
   leadCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 16,
     marginBottom: 12,
@@ -123,14 +134,12 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   profileHeader: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 28,
     alignItems: 'center',
     marginBottom: 16,
   },
   profileDetails: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 20,
   },

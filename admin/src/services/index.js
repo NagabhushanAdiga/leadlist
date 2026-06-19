@@ -6,6 +6,8 @@ import * as adminService from './adminService.js'
 import * as auditService from './auditService.js'
 import * as excelUploadService from './excelUploadService.js'
 import * as exportService from './exportService.js'
+import * as feedbackService from './feedbackService.js'
+import * as settingsService from './settingsService.js'
 
 export const api = {
   login: authService.login,
@@ -22,9 +24,22 @@ export const api = {
   createAdmin: adminService.createAdmin,
   deleteAdmin: adminService.deleteAdmin,
   getAuditLogs: auditService.getAuditLogs,
+  deleteAuditLogs: auditService.deleteAuditLogs,
+  getFeedback: feedbackService.getFeedback,
+  updateFeedback: feedbackService.updateFeedback,
+  deleteFeedback: feedbackService.deleteFeedback,
   getExcelUploads: excelUploadService.getExcelUploads,
+  deleteExcelUpload: excelUploadService.deleteExcelUpload,
+  deleteAllExcelDataForUser: excelUploadService.deleteAllExcelDataForUser,
   downloadUserLeadsExcel: exportService.downloadUserLeadsExcel,
   downloadUserLeadsPdf: exportService.downloadUserLeadsPdf,
+  purgeExcelData: settingsService.purgeExcelData,
+  purgeAllUsers: settingsService.purgeAllUsers,
+  purgeAllAdmins: settingsService.purgeAllAdmins,
+  purgeAllLeads: settingsService.purgeAllLeads,
+  purgeAllAuditLogs: settingsService.purgeAllAuditLogs,
+  purgeAllFeedback: settingsService.purgeAllFeedback,
+  purgeEntireDatabase: settingsService.purgeEntireDatabase,
 }
 
 export { API_BASE_URL } from './config.js'

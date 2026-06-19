@@ -12,7 +12,9 @@ import {
   requiresRejectionReason,
   requiresReminders,
 } from '../constants/leadStatuses'
+import { useAppTheme } from '../context/ThemeContext'
 import { fontSize } from '../theme/typography'
+
 function getDefaultFollowUpDate() {
   const date = new Date()
   date.setDate(date.getDate() + 1)
@@ -35,11 +37,13 @@ export function UpdateLeadStatusModal({
   onSave,
   saving,
 }) {
+  const { colors } = useAppTheme()
   const [selectedStatus, setSelectedStatus] = useState(lead?.status || FOLLOW_UP_STATUS)
   const [selectedReason, setSelectedReason] = useState(null)
   const [followUpDate, setFollowUpDate] = useState(getDefaultFollowUpDate())
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [error, setError] = useState('')
+
   useEffect(() => {
     if (!lead) {
       return
@@ -51,6 +55,7 @@ export function UpdateLeadStatusModal({
     setError('')
     setShowDatePicker(false)
   }, [lead, visible])
+
   const handleSave = () => {
     if (requiresFollowUpDate(selectedStatus)) {
       const today = new Date()
@@ -74,6 +79,7 @@ export function UpdateLeadStatusModal({
       rejectionReason: requiresRejectionReason(selectedStatus) ? selectedReason : null,
     })
   }
+
   const onDateChange = (event, date) => {
     if (Platform.OS === 'android') {
       setShowDatePicker(false)
@@ -86,18 +92,25 @@ export function UpdateLeadStatusModal({
     setFollowUpDate(date)
     setError('')
   }
+
   if (!lead) {
     return null
   }
 
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss} style={styles.dialog}>
+      <Dialog
+        visible={visible}
+        onDismiss={onDismiss}
+        style={[styles.dialog, { backgroundColor: colors.surface }]}
+      >
         <Dialog.Title>Update Status</Dialog.Title>
         <Dialog.ScrollArea style={styles.scrollArea}>
           <ScrollView contentContainerStyle={styles.scrollContent}>
-            <Text style={styles.leadName}>{lead.name}</Text>
-            <Text style={styles.subtitle}>Choose a new status for this lead</Text>
+            <Text style={[styles.leadName, { color: colors.text }]}>{lead.name}</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+              Choose a new status for this lead
+            </Text>
 
             <View style={styles.statusList}>
               {LEAD_STATUSES.map((item) => {
@@ -107,7 +120,10 @@ export function UpdateLeadStatusModal({
                     key={item.key}
                     style={[
                       styles.statusChip,
-                      isSelected && { borderColor: item.color, backgroundColor: `${item.color}14` },
+                      {
+                        borderColor: isSelected ? item.color : colors.borderStrong,
+                        backgroundColor: isSelected ? `${item.color}14` : colors.chipBg,
+                      },
                     ]}
                     onPress={() => {
                       setSelectedStatus(item.key)
@@ -118,7 +134,7 @@ export function UpdateLeadStatusModal({
                     }}
                   >
                     <View style={[styles.statusDot, { backgroundColor: item.color }]} />
-                    <Text style={[styles.statusText, isSelected && { color: item.color }]}>
+                    <Text style={[styles.statusText, { color: isSelected ? item.color : colors.text }]}>
                       {item.label}
                     </Text>
                   </Pressable>
@@ -128,7 +144,7 @@ export function UpdateLeadStatusModal({
 
             {requiresRejectionReason(selectedStatus) ? (
               <View style={styles.reasonSection}>
-                <Text style={styles.sectionLabel}>Select reason</Text>
+                <Text style={[styles.sectionLabel, { color: colors.text }]}>Select reason</Text>
                 <View style={styles.reasonList}>
                   {LOAN_REJECTION_REASONS.map((item) => {
                     const isSelected = selectedReason === item.key
@@ -137,7 +153,10 @@ export function UpdateLeadStatusModal({
                         key={item.key}
                         style={[
                           styles.reasonChip,
-                          isSelected && styles.reasonChipSelected,
+                          {
+                            borderColor: isSelected ? colors.danger : colors.borderStrong,
+                            backgroundColor: isSelected ? colors.dangerSoft : colors.dropZoneBg,
+                          },
                         ]}
                         onPress={() => {
                           setSelectedReason(item.key)
@@ -147,7 +166,7 @@ export function UpdateLeadStatusModal({
                         <Text
                           style={[
                             styles.reasonText,
-                            isSelected && styles.reasonTextSelected,
+                            { color: isSelected ? colors.danger : colors.text },
                           ]}
                         >
                           {item.label}
@@ -161,15 +180,25 @@ export function UpdateLeadStatusModal({
 
             {requiresFollowUpDate(selectedStatus) ? (
               <View style={styles.dateSection}>
-                <Text style={styles.sectionLabel}>{getFollowUpDateLabel(selectedStatus)}</Text>
+                <Text style={[styles.sectionLabel, { color: colors.text }]}>
+                  {getFollowUpDateLabel(selectedStatus)}
+                </Text>
                 <Pressable
-                  style={styles.dateButton}
+                  style={[
+                    styles.dateButton,
+                    {
+                      borderColor: colors.borderStrong,
+                      backgroundColor: colors.dropZoneBg,
+                    },
+                  ]}
                   onPress={() => setShowDatePicker(true)}
                 >
-                  <Text style={styles.dateButtonText}>{formatDate(followUpDate)}</Text>
+                  <Text style={[styles.dateButtonText, { color: colors.text }]}>
+                    {formatDate(followUpDate)}
+                  </Text>
                 </Pressable>
                 {requiresReminders(selectedStatus) ? (
-                  <Text style={styles.reminderHint}>
+                  <Text style={[styles.reminderHint, { color: colors.textSecondary }]}>
                     You will get reminders 3 days before, 2 days before, 1 day before, and on the{' '}
                     {getReminderDayLabel(selectedStatus)} day.
                   </Text>
@@ -187,11 +216,11 @@ export function UpdateLeadStatusModal({
               </View>
             ) : null}
 
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? <Text style={[styles.error, { color: colors.dangerText }]}>{error}</Text> : null}
           </ScrollView>
         </Dialog.ScrollArea>
         <Dialog.Actions>
-          <Button onPress={onDismiss} textColor="#6B7280">
+          <Button onPress={onDismiss} textColor={colors.textSecondary}>
             Cancel
           </Button>
           <Button onPress={handleSave} loading={saving} disabled={saving}>
@@ -206,7 +235,6 @@ export function UpdateLeadStatusModal({
 const styles = StyleSheet.create({
   dialog: {
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
     maxHeight: '88%',
   },
   scrollArea: {
@@ -220,12 +248,10 @@ const styles = StyleSheet.create({
   leadName: {
     fontSize: fontSize.lg,
     fontWeight: '700',
-    color: '#1A1A2E',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: fontSize.sm,
-    color: '#6B7280',
     marginBottom: 16,
   },
   statusList: {
@@ -235,7 +261,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -249,7 +274,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: fontSize.md,
     fontWeight: '600',
-    color: '#1A1A2E',
     flex: 1,
   },
   reasonSection: {
@@ -258,7 +282,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: fontSize.sm,
     fontWeight: '600',
-    color: '#1A1A2E',
     marginBottom: 8,
   },
   reasonList: {
@@ -266,49 +289,34 @@ const styles = StyleSheet.create({
   },
   reasonChip: {
     borderWidth: 1,
-    borderColor: '#E5E7EB',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#FAFBFF',
-  },
-  reasonChipSelected: {
-    borderColor: '#DC2626',
-    backgroundColor: '#FEF2F2',
   },
   reasonText: {
     fontSize: fontSize.md,
     fontWeight: '600',
-    color: '#1A1A2E',
-  },
-  reasonTextSelected: {
-    color: '#DC2626',
   },
   dateSection: {
     marginTop: 16,
   },
   dateButton: {
     borderWidth: 1,
-    borderColor: '#D1D5DB',
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    backgroundColor: '#FAFBFF',
   },
   dateButtonText: {
     fontSize: fontSize.md,
-    color: '#1A1A2E',
     fontWeight: '600',
   },
   reminderHint: {
     marginTop: 10,
     fontSize: fontSize.sm,
-    color: '#6B7280',
     lineHeight: 20,
   },
   error: {
     marginTop: 12,
     fontSize: fontSize.sm,
-    color: '#EF4444',
   },
 })

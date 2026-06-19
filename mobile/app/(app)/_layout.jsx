@@ -106,6 +106,13 @@ export default function AppLayout() {
         }}
       />
       <Drawer.Screen
+        name="feedback"
+        options={{
+          title: 'Feedback',
+          drawerLabel: 'Feedback',
+        }}
+      />
+      <Drawer.Screen
         name="settings"
         options={{
           title: 'Settings',

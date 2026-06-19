@@ -26,7 +26,7 @@ export const AuthController = {
   },
 
   async userLogin(req, res) {
-    const { email, password } = req.body
+    const { email, password, deviceId } = req.body
 
     if (!email?.trim() || !password?.trim()) {
       return res.status(400).json({ message: 'Email and password are required.' })
@@ -38,7 +38,10 @@ export const AuthController = {
       return res.status(401).json({ message: 'Invalid email or password.' })
     }
 
-    const token = await SessionModel.create({ type: 'user', userId: user.id })
+    const token = await SessionModel.createUserSession({
+      userId: user.id,
+      deviceId: deviceId?.trim() || null,
+    })
 
     res.json({
       token,
@@ -68,11 +71,25 @@ export const AuthController = {
       enabled: false,
     })
 
-    const token = await SessionModel.create({ type: 'user', userId: user.id })
+    const token = await SessionModel.createUserSession({
+      userId: user.id,
+      deviceId: req.body.deviceId?.trim() || null,
+    })
 
     res.status(201).json({
       token,
       user: toPublicUser(user),
     })
+  },
+
+  async userLogout(req, res) {
+    const header = req.headers.authorization || ''
+    const token = header.startsWith('Bearer ') ? header.slice(7) : null
+
+    if (token) {
+      await SessionModel.deleteByToken(token)
+    }
+
+    res.json({ success: true })
   },
 }
