@@ -1,0 +1,19 @@
+{
+  "admin": {
+    "email": "admin@leadlist.com",
+    "password": "admin123"
+  },
+  "users": [],
+  "leads": [],
+  "sessions": {},
+  "admins": [
+    {
+      "id": "14fd1443-f3f9-4030-b553-7513da95e952",
+      "name": "Primary Admin",
+      "email": "admin@leadlist.com",
+      "password": "admin123",
+      "isPrimary": true,
+      "createdAt": "2026-06-18T14:16:14.479Z"
+    }
+  ]
+}
