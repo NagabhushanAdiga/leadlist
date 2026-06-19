@@ -9,6 +9,7 @@ web-build/
 *.mobileprovision
 *.orig.*
 credentials.json
+credentials/
 android/app/build/
 android/build/
 android/.gradle/

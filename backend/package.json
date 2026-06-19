@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "db:check": "node scripts/check-db.js"
+    "db:check": "node scripts/check-db.js",
+    "db:init-audit": "node scripts/init-audit-table.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

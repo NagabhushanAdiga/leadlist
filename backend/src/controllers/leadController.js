@@ -1,6 +1,20 @@
 import { LeadModel } from '../models/leadModel.js'
 import { UserModel } from '../models/userModel.js'
 import { parseExcelBuffer } from '../utils/parseExcel.js'
+import { diffChanges, recordAudit } from '../utils/auditLog.js'
+
+const LEAD_FIELDS = [
+  'name',
+  'email',
+  'phone',
+  'company',
+  'role',
+  'status',
+  'followUpDate',
+  'rejectionReason',
+]
+
+const MOBILE_LEAD_FIELDS = ['status', 'followUpDate', 'rejectionReason']
 
 export const LeadController = {
   async list(req, res) {
@@ -9,21 +23,53 @@ export const LeadController = {
   },
 
   async update(req, res) {
+    const before = await LeadModel.findById(req.params.id)
+
+    if (!before) {
+      return res.status(404).json({ message: 'Lead not found.' })
+    }
+
     const lead = await LeadModel.update(req.params.id, req.body)
 
     if (!lead) {
       return res.status(404).json({ message: 'Lead not found.' })
     }
 
-    res.json(await LeadModel.enrich(lead))
+    const enriched = await LeadModel.enrich(lead)
+
+    await recordAudit(req, {
+      action: 'update',
+      entityType: 'lead',
+      entityId: enriched.id,
+      entityLabel: enriched.name,
+      summary: `Updated lead ${enriched.name}`,
+      changes: diffChanges(before, lead, LEAD_FIELDS),
+    })
+
+    res.json(enriched)
   },
 
   async remove(req, res) {
+    const before = await LeadModel.findById(req.params.id)
+
+    if (!before) {
+      return res.status(404).json({ message: 'Lead not found.' })
+    }
+
     const deleted = await LeadModel.delete(req.params.id)
 
     if (!deleted) {
       return res.status(404).json({ message: 'Lead not found.' })
     }
+
+    await recordAudit(req, {
+      action: 'delete',
+      entityType: 'lead',
+      entityId: before.id,
+      entityLabel: before.name,
+      summary: `Deleted lead ${before.name}`,
+      changes: [{ field: 'deleted', from: before.name, to: null }],
+    })
 
     res.json({ success: true })
   },
@@ -49,6 +95,15 @@ export const LeadController = {
       const parsedLeads = parseExcelBuffer(req.file.buffer)
       const importedLeads = await LeadModel.importForUser(userId, parsedLeads)
 
+      await recordAudit(req, {
+        action: 'import',
+        entityType: 'lead',
+        entityId: userId,
+        entityLabel: user.name,
+        summary: `Imported ${importedLeads.length} lead(s) for ${user.name}`,
+        changes: [{ field: 'leadCount', from: null, to: importedLeads.length }],
+      })
+
       res.json({
         count: importedLeads.length,
         userId,
@@ -65,11 +120,26 @@ export const LeadController = {
   },
 
   async updateMine(req, res) {
+    const before = await LeadModel.findById(req.params.id)
+
+    if (!before || before.userId !== req.userId) {
+      return res.status(404).json({ message: 'Lead not found.' })
+    }
+
     const lead = await LeadModel.updateForUser(req.params.id, req.userId, req.body)
 
     if (!lead) {
       return res.status(404).json({ message: 'Lead not found.' })
     }
+
+    await recordAudit(req, {
+      action: 'update',
+      entityType: 'lead',
+      entityId: lead.id,
+      entityLabel: lead.name,
+      summary: `Updated lead ${lead.name}`,
+      changes: diffChanges(before, lead, MOBILE_LEAD_FIELDS),
+    })
 
     res.json(lead)
   },
@@ -82,6 +152,15 @@ export const LeadController = {
     try {
       const parsedLeads = parseExcelBuffer(req.file.buffer)
       const importedLeads = await LeadModel.importForUser(req.userId, parsedLeads)
+
+      await recordAudit(req, {
+        action: 'import',
+        entityType: 'lead',
+        entityId: req.userId,
+        entityLabel: req.user?.name || 'Mobile user',
+        summary: `Imported ${importedLeads.length} lead(s) from mobile app`,
+        changes: [{ field: 'leadCount', from: null, to: importedLeads.length }],
+      })
 
       res.json({
         count: importedLeads.length,

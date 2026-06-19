@@ -1,5 +1,6 @@
 import { AdminModel } from '../models/adminModel.js'
 import { withoutPassword } from '../utils/sanitize.js'
+import { recordAudit } from '../utils/auditLog.js'
 
 export const AdminController = {
   async list(_req, res) {
@@ -22,10 +23,26 @@ export const AdminController = {
     }
 
     const admin = await AdminModel.create({ name, email, password })
-    res.status(201).json(withoutPassword(admin))
+    const publicAdmin = withoutPassword(admin)
+
+    await recordAudit(req, {
+      action: 'create',
+      entityType: 'admin',
+      entityId: publicAdmin.id,
+      entityLabel: publicAdmin.name,
+      summary: `Created admin ${publicAdmin.name}`,
+      changes: [
+        { field: 'name', from: null, to: publicAdmin.name },
+        { field: 'email', from: null, to: publicAdmin.email },
+      ],
+    })
+
+    res.status(201).json(publicAdmin)
   },
 
   async remove(req, res) {
+    const before = await AdminModel.findById(req.params.id)
+
     const result = await AdminModel.delete(req.params.id)
 
     if (result?.error === 'not_found') {
@@ -35,6 +52,15 @@ export const AdminController = {
     if (result?.error === 'primary') {
       return res.status(400).json({ message: 'The primary admin account cannot be deleted.' })
     }
+
+    await recordAudit(req, {
+      action: 'delete',
+      entityType: 'admin',
+      entityId: before.id,
+      entityLabel: before.name,
+      summary: `Removed admin ${before.name}`,
+      changes: [{ field: 'deleted', from: before.email, to: null }],
+    })
 
     res.json({ success: true })
   },

@@ -242,6 +242,16 @@ th {
   flex-wrap: wrap;
 }
 
+.audit-changes-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #374151;
+}
+
+.audit-changes-list li {
+  margin-bottom: 4px;
+}
+
 @media (max-width: 768px) {
   .admin-topbar {
     flex-direction: column;

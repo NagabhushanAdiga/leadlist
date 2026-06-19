@@ -7,6 +7,7 @@ const PAGE_TITLES = {
   '/dashboard/leads': 'Leads',
   '/dashboard/upload': 'Upload Excel',
   '/dashboard/settings': 'Settings',
+  '/dashboard/audit': 'Audit Log',
 }
 
 export function AdminTopBar() {

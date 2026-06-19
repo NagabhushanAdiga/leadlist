@@ -18,7 +18,10 @@ const NAV_SECTIONS = [
   },
   {
     title: 'System',
-    items: [{ to: '/dashboard/settings', label: 'Settings', icon: '⚙' }],
+    items: [
+      { to: '/dashboard/audit', label: 'Audit Log', icon: '📋' },
+      { to: '/dashboard/settings', label: 'Settings', icon: '⚙' },
+    ],
   },
 ]
 

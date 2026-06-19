@@ -1,5 +1,6 @@
 import mongoose from 'mongoose'
 import { MONGODB_URI } from './index.js'
+import { AuditModel } from '../models/auditModel.js'
 
 let isConnected = false
 
@@ -17,6 +18,8 @@ export async function connectDatabase() {
   await mongoose.connect(MONGODB_URI, {
     serverSelectionTimeoutMS: 10000,
   })
+
+  await AuditModel.ensureTable()
 
   isConnected = true
   console.log('MongoDB connected')
