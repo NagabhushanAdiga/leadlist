@@ -14,6 +14,7 @@ const NAV_SECTIONS = [
       { to: '/dashboard/users', label: 'Users', icon: '👤' },
       { to: '/dashboard/leads', label: 'Leads', icon: '☰' },
       { to: '/dashboard/upload', label: 'Upload Excel', icon: '⇪' },
+      { to: '/dashboard/user-leads', label: 'User Leads', icon: '📊' },
     ],
   },
   {

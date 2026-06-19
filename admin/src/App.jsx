@@ -8,6 +8,7 @@ import { LeadsPage } from './pages/LeadsPage'
 import { LoginPage } from './pages/LoginPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { UploadPage } from './pages/UploadPage'
+import { UserLeadsPage } from './pages/UserLeadsPage'
 import { UsersPage } from './pages/UsersPage'
 
 function ProtectedRoute({ children }) {
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="users" element={<UsersPage />} />
           <Route path="leads" element={<LeadsPage />} />
           <Route path="upload" element={<UploadPage />} />
+          <Route path="user-leads" element={<UserLeadsPage />} />
           <Route path="audit" element={<AuditPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>

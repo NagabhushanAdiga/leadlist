@@ -1,6 +1,7 @@
 import mongoose from 'mongoose'
 import { MONGODB_URI } from './index.js'
 import { AuditModel } from '../models/auditModel.js'
+import { ExcelUploadModel } from '../models/excelUploadModel.js'
 
 let isConnected = false
 
@@ -20,6 +21,7 @@ export async function connectDatabase() {
   })
 
   await AuditModel.ensureTable()
+  await ExcelUploadModel.ensureTable()
 
   isConnected = true
   console.log('MongoDB connected')

@@ -6,6 +6,7 @@ const PAGE_TITLES = {
   '/dashboard/users': 'Users',
   '/dashboard/leads': 'Leads',
   '/dashboard/upload': 'Upload Excel',
+  '/dashboard/user-leads': 'User Leads',
   '/dashboard/settings': 'Settings',
   '/dashboard/audit': 'Audit Log',
 }

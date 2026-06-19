@@ -2,6 +2,8 @@ import { LeadModel } from '../models/leadModel.js'
 import { UserModel } from '../models/userModel.js'
 import { parseExcelBuffer } from '../utils/parseExcel.js'
 import { diffChanges, recordAudit } from '../utils/auditLog.js'
+import { recordExcelUpload } from '../utils/excelUploadLog.js'
+import { buildExportFileName, buildLeadExcelBuffer, buildLeadPdfBuffer } from '../utils/exportLeads.js'
 
 const LEAD_FIELDS = [
   'name',
@@ -20,6 +22,50 @@ export const LeadController = {
   async list(req, res) {
     const { userId } = req.query
     res.json(await LeadModel.findAll(userId))
+  },
+
+  async exportExcel(req, res) {
+    const userId = req.query.userId?.trim()
+
+    if (!userId) {
+      return res.status(400).json({ message: 'Select a user to export leads for.' })
+    }
+
+    const user = await UserModel.findById(userId)
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' })
+    }
+
+    const leads = await LeadModel.findByUser(userId)
+    const buffer = buildLeadExcelBuffer(leads)
+    const fileName = buildExportFileName(user.name, 'xlsx')
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`)
+    res.send(buffer)
+  },
+
+  async exportPdf(req, res) {
+    const userId = req.query.userId?.trim()
+
+    if (!userId) {
+      return res.status(400).json({ message: 'Select a user to export leads for.' })
+    }
+
+    const user = await UserModel.findById(userId)
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' })
+    }
+
+    const leads = await LeadModel.findByUser(userId)
+    const buffer = await buildLeadPdfBuffer(leads, user.name)
+    const fileName = buildExportFileName(user.name, 'pdf')
+
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`)
+    res.send(buffer)
   },
 
   async update(req, res) {
@@ -104,10 +150,18 @@ export const LeadController = {
         changes: [{ field: 'leadCount', from: null, to: importedLeads.length }],
       })
 
+      await recordExcelUpload(req, {
+        user,
+        fileName: req.file.originalname,
+        leadCount: importedLeads.length,
+        source: 'admin',
+      })
+
       res.json({
         count: importedLeads.length,
         userId,
         userName: user.name,
+        fileName: req.file.originalname,
         leads: await Promise.all(importedLeads.map((lead) => LeadModel.enrich(lead))),
       })
     } catch (error) {
@@ -162,9 +216,17 @@ export const LeadController = {
         changes: [{ field: 'leadCount', from: null, to: importedLeads.length }],
       })
 
+      await recordExcelUpload(req, {
+        user: req.user,
+        fileName: req.file.originalname,
+        leadCount: importedLeads.length,
+        source: 'mobile',
+      })
+
       res.json({
         count: importedLeads.length,
         userId: req.userId,
+        fileName: req.file.originalname,
         leads: importedLeads,
       })
     } catch (error) {
