@@ -64,7 +64,7 @@ export default function UploadScreen() {
     setUploading(true)
 
     try {
-      const result = await importLeadsFromExcel(file.uri)
+      const result = await importLeadsFromExcel(file)
       setSuccess(`Imported ${result.count} lead${result.count === 1 ? '' : 's'} from "${file.name}".`)
       setFile(null)
     } catch (err) {

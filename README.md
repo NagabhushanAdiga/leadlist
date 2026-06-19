@@ -8,8 +8,10 @@ Monorepo-style project with separate mobile app, admin web, and API server.
 MobileAppp/
 ├── mobile/     # Expo React Native app
 ├── admin/      # React 18 admin web dashboard
-└── server/     # Express API for admin & mobile
+└── backend/    # Express API (MVC: models, controllers, routes)
 ```
+
+Legacy `server/` folder forwards to `backend/` for compatibility.
 
 ## Mobile app
 
@@ -22,6 +24,14 @@ npm start
 Scan the QR code with Expo Go, or press `i` / `a` for simulators.
 
 ## Admin web (React 18)
+
+```bash
+cd backend
+npm install
+npm start
+```
+
+Or from the legacy `server/` folder:
 
 ```bash
 cd server
@@ -42,6 +52,13 @@ Open `http://localhost:5173`
 
 ## API server
 
-Runs at `http://localhost:4000` and stores data in `server/data/db.json`.
+Runs at `http://localhost:4000` and stores data in **MongoDB** (`leadlist` database).
+
+```bash
+cd backend
+cp .env.example .env
+npm install
+npm start
+```
 
 Endpoints include user management, leads CRUD, and Excel import.

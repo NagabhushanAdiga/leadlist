@@ -1,6 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import {
+  changeMyPassword,
   setAuthToken,
+  updateMyProfile,
   userLogin as apiUserLogin,
   userRegister as apiUserRegister,
 } from '../services/api'
@@ -132,15 +134,14 @@ export function AuthProvider({ children }) {
           throw new Error('No user logged in.')
         }
 
-        const nextUser = buildUser({
-          ...user,
-          ...updates,
+        const remoteUser = await updateMyProfile({
           name: updates.name?.trim() || user.name,
           email: updates.email?.trim() || user.email,
           mobile: updates.mobile?.trim() || user.mobile,
           role: updates.role?.trim() || user.role,
           company: updates.company?.trim() || user.company,
         })
+        const nextUser = buildUser(remoteUser)
         setUser(nextUser)
         await saveUserSession(nextUser, password, token)
         return nextUser
@@ -150,14 +151,11 @@ export function AuthProvider({ children }) {
           throw new Error('No user logged in.')
         }
 
-        if (currentPassword !== password) {
-          throw new Error('Current password is incorrect.')
-        }
-
         if (newPassword.length < 6) {
           throw new Error('New password must be at least 6 characters.')
         }
 
+        await changeMyPassword(currentPassword, newPassword)
         setPassword(newPassword)
         await saveUserSession(user, newPassword, token)
       },

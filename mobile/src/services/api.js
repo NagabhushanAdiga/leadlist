@@ -46,6 +46,34 @@ export async function userRegister(name, email, password) {
   return parseResponse(response)
 }
 
+export async function fetchMyProfile() {
+  const response = await fetch(`${API_BASE_URL}/my/profile`, {
+    headers: authHeaders(),
+  })
+
+  return parseResponse(response)
+}
+
+export async function updateMyProfile(payload) {
+  const response = await fetch(`${API_BASE_URL}/my/profile`, {
+    method: 'PUT',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(payload),
+  })
+
+  return parseResponse(response)
+}
+
+export async function changeMyPassword(currentPassword, newPassword) {
+  const response = await fetch(`${API_BASE_URL}/my/password`, {
+    method: 'PUT',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ currentPassword, newPassword }),
+  })
+
+  return parseResponse(response)
+}
+
 export async function fetchMyLeads() {
   const response = await fetch(`${API_BASE_URL}/my/leads`, {
     headers: authHeaders(),
