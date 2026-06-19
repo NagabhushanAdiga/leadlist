@@ -1,7 +1,7 @@
 import cors from 'cors'
 import express from 'express'
 import { ensureDatabase } from './config/database.js'
-import { seedDefaultAdmin } from './config/seed.js'
+import { seedDefaultAdmin, seedDefaultUser } from './config/seed.js'
 import routes from './routes/index.js'
 
 const app = express()
@@ -15,13 +15,14 @@ app.get('/api/health', (_req, res) => {
 
 app.use(ensureDatabase)
 
-let adminSeeded = false
+let seeded = false
 
 app.use(async (_req, _res, next) => {
   try {
-    if (!adminSeeded) {
+    if (!seeded) {
       await seedDefaultAdmin()
-      adminSeeded = true
+      await seedDefaultUser()
+      seeded = true
     }
     next()
   } catch (error) {
