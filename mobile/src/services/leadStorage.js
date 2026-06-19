@@ -3,7 +3,7 @@ import {
   fetchMyLeads,
   importMyLeadsFromExcel,
   updateMyLead,
-} from './api'
+} from './leadService.js'
 
 function withStatusColor(lead) {
   return {

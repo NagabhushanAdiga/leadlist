@@ -1,11 +1,11 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import {
   changeMyPassword,
-  setAuthToken,
   updateMyProfile,
   userLogin as apiUserLogin,
   userRegister as apiUserRegister,
-} from '../services/api'
+} from '../services/authService'
+import { setAuthToken } from '../services/httpClient'
 import {
   clearUserSession,
   getUserSession,

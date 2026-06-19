@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api } from '../api/client'
+import { api } from '../services'
 import { useConfirm } from '../context/ConfirmContext'
 
 const EMPTY_FORM = {

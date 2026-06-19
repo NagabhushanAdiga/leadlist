@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api } from '../api/client'
+import { api } from '../services'
 import { LEAD_STATUSES, STATUS_COLORS } from '../constants/leadStatuses'
 
 export function LeadsPage() {
